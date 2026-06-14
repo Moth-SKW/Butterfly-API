@@ -1,26 +1,66 @@
 {
   "syntax_plush_honk": {
-    "sounds": [ { "name": "butterfly_api:syntax_plush_honk" } ]
-  },
-  "hex_maid_plush_honk": {
-    "sounds": [ { "name": "butterfly_api:hex_maid_plush_honk" } ]
-  },
-  "moth_plush_honk": {
-    "sounds": [ { "name": "butterfly_api:moth_plush_honk" } ]
+    "sounds": [
+      {
+        "name": "butterfly_api:syntax_plush_honk"
+      }
+    ]
   },
   "hex_plush_honk": {
-    "sounds": [ { "name": "butterfly_api:hex_plush_honk" } ]
+    "sounds": [
+      {
+        "name": "butterfly_api:hex_plush_honk"
+      }
+    ]
+  },
+  "ringmaster_hex_plush_honk": {
+    "sounds": [
+      {
+        "name": "butterfly_api:ringmaster_hex_plush_honk",
+        "volume": 0.35
+      }
+    ]
+  },
+  "hex_maid_plush_honk": {
+    "sounds": [
+      {
+        "name": "butterfly_api:hex_maid_plush_honk"
+      }
+    ]
+  },
+  "moth_plush_honk": {
+    "sounds": [
+      {
+        "name": "butterfly_api:moth_plush_honk"
+      }
+    ]
   },
   "chicken_plush_honk": {
-    "sounds": [ { "name": "butterfly_api:chicken_plush_honk" } ]
+    "sounds": [
+      {
+        "name": "butterfly_api:chicken_plush_honk"
+      }
+    ]
   },
   "capozi_plush_honk": {
-    "sounds": [ { "name": "butterfly_api:capozi_plush_honk" } ]
+    "sounds": [
+      {
+        "name": "butterfly_api:capozi_plush_honk"
+      }
+    ]
   },
   "debug_plush_honk": {
-    "sounds": [ { "name": "butterfly_api:debug_plush_honk" } ]
+    "sounds": [
+      {
+        "name": "butterfly_api:debug_plush_honk"
+      }
+    ]
   },
   "matchstick": {
-    "sounds": [ { "name": "butterfly_api:matchstick" } ]
+    "sounds": [
+      {
+        "name": "butterfly_api:matchstick"
+      }
+    ]
   }
 }

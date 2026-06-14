@@ -8,4 +8,7 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 public interface ItemGroupBuilderAccessor {
     @Accessor("type")
     void butterflyApi$setType(ItemGroup.Type type);
+
+    @Accessor("special")
+    void butterflyApi$setSpecial(boolean special);
 }

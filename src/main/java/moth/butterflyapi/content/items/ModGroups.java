@@ -46,6 +46,10 @@ public final class ModGroups {
                             entry -> entry.slotTexture(plushSlotTexture(Plushes.HEX))
                     )
                     .entry(
+                            ModBlocks.plush(Plushes.RINGMASTER_HEX),
+                            entry -> entry.slotTexture(plushSlotTexture(Plushes.RINGMASTER_HEX))
+                    )
+                    .entry(
                             ModBlocks.plush(Plushes.HEX_MAID),
                             entry -> entry.slotTexture(plushSlotTexture(Plushes.HEX_MAID))
                     )

@@ -7,7 +7,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
 
-@Mixin(HandledScreen.class)
+@Mixin(value = HandledScreen.class, priority = 900)
 public abstract class HandledScreenMixin {
     @Redirect(
             method = "render",
@@ -15,7 +15,8 @@ public abstract class HandledScreenMixin {
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/gui/screen/ingame/HandledScreen;drawSlotHighlight(" +
                             "Lnet/minecraft/client/gui/DrawContext;III)V"
-            )
+            ),
+            require = 0
     )
     private void butterflyApi$drawCreativeSlotHighlight(
             DrawContext context,
@@ -27,7 +28,6 @@ public abstract class HandledScreenMixin {
             if (extension.butterflyApi$isCategorySlotFocused()) {
                 return;
             }
-
         }
         HandledScreen.drawSlotHighlight(context, x, y, z);
     }

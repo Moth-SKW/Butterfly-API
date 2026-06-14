@@ -13,12 +13,17 @@ import net.minecraft.util.math.random.Random;
 public class PlushBlockEntityRenderer implements BlockEntityRenderer<PlushBlockEntity> {
     private final PlushGeoRenderer geckoRenderer = new PlushGeoRenderer();
 
+    public PlushBlockEntityRenderer() {
+    }
+
     public PlushBlockEntityRenderer(BlockEntityRendererFactory.Context ctx) {
+        this();
     }
 
     @Override
     public void render(PlushBlockEntity be, float tickDelta, MatrixStack matrices, VertexConsumerProvider vcp, int light, int overlay) {
-        if (be.getWorld() == null) {
+        PlushDefinition.GeckoRenderData gecko = be.plushDefinition().geckolib();
+        if (gecko == null && be.getWorld() == null) {
             return;
         }
 
@@ -29,7 +34,6 @@ public class PlushBlockEntityRenderer implements BlockEntityRenderer<PlushBlockE
         matrices.push();
         scaleAroundCenter(matrices, xzScale, yScale, xzScale);
 
-        PlushDefinition.GeckoRenderData gecko = be.plushDefinition().geckolib();
         if (gecko != null) {
             if (gecko.scale() != 1.0f) {
                 scaleAroundCenter(matrices, gecko.scale(), gecko.scale(), gecko.scale());

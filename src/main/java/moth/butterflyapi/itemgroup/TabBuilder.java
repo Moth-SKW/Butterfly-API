@@ -1,6 +1,5 @@
 package moth.butterflyapi.itemgroup;
 
-import moth.butterflyapi.content.mixin.ItemGroupBuilderAccessor;
 import moth.butterflyapi.mod.ModContext;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
 import net.minecraft.item.ItemConvertible;
@@ -39,14 +38,13 @@ public final class TabBuilder {
     private TabSurface betweenSlotsBackground;
     private Integer tintColor;
     private Integer tabNameColor;
+    private boolean specialPosition;
 
     TabBuilder(ModContext context, String path) {
         this.context = Objects.requireNonNull(context, "context");
         this.path = Objects.requireNonNull(path, "path");
         this.builder = FabricItemGroup.builder();
 
-        ((ItemGroupBuilderAccessor) (Object) builder).butterflyApi$setType(ItemGroup.Type.SEARCH);
-        builder.special();
         builder.texture(DEFAULT_SEARCH_BACKGROUND);
         builder.displayName(Text.translatable(context.tabs().translationKey(path)));
     }
@@ -253,6 +251,7 @@ public final class TabBuilder {
     }
 
     public TabBuilder special() {
+        specialPosition = true;
         builder.special();
         return this;
     }
@@ -368,6 +367,7 @@ public final class TabBuilder {
         List<TabCategory> categories = resolveCategories();
         TabProperties.Definition definition = new TabProperties.Definition(
                 customOverlay,
+                !specialPosition,
                 customBackgroundTexture,
                 slotBackground,
                 betweenSlotsBackground,

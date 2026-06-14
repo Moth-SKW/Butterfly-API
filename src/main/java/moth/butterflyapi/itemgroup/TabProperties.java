@@ -44,6 +44,7 @@ public final class TabProperties {
 
     public static final class Definition {
         private final boolean customOverlay;
+        private final boolean normalTabPosition;
         @Nullable
         private final Identifier backgroundTexture;
         @Nullable
@@ -59,6 +60,7 @@ public final class TabProperties {
 
         Definition(
                 boolean customOverlay,
+                boolean normalTabPosition,
                 @Nullable Identifier backgroundTexture,
                 @Nullable TabSurface slotBackground,
                 @Nullable TabSurface betweenSlotsBackground,
@@ -72,6 +74,7 @@ public final class TabProperties {
                 );
             }
             this.customOverlay = customOverlay;
+            this.normalTabPosition = normalTabPosition;
             this.backgroundTexture = backgroundTexture;
             this.slotBackground = slotBackground;
             this.betweenSlotsBackground = betweenSlotsBackground;
@@ -94,6 +97,10 @@ public final class TabProperties {
 
         public boolean customOverlay() {
             return customOverlay;
+        }
+
+        public boolean normalTabPosition() {
+            return normalTabPosition;
         }
 
         public boolean usesCustomGridOverlay() {

@@ -27,6 +27,9 @@ public final class Plushes {
 
     public static final String SYNTAX = plush("syntax_plush");
     public static final String HEX = plush("hex_plush");
+    public static final String RINGMASTER_HEX = plush(
+            PlushDefinition.geckoBuilder(ContentBootstrap.id("ringmaster_hex_plush")).build()
+    );
     public static final String HEX_MAID = plush("hex_maid_plush");
     public static final String MOTH = plush(
             PlushDefinition.geckoBuilder(ContentBootstrap.id("moth_plush"))

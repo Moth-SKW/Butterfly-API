@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "PPP",
+    "PFP",
+    "GGG"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:gray_wool"
+    },
+    "P": {
+      "item": "minecraft:pink_wool"
+    },
+    "F": {
+      "item": "minecraft:firework_star"
+    }
+  },
+  "result": {
+    "item": "butterfly_api:hex_plush",
+    "count": 1
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "parent": "butterfly_api:root",
+  "display": {
+    "icon": {
+      "item": "butterfly_api:big_red_button"
+    },
+    "title": {
+      "translate": "advancements.butterfly_api.big_red_button.click_1.title"
+    },
+    "description": {
+      "translate": "advancements.butterfly_api.big_red_button.click_1.description"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "clicks": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    [
+      "clicks"
+    ]
+  ]
+}

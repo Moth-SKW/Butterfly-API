@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "butterfly_api",
+  "version": "${version}",
+  "name": "Butterfly API",
+  "description": "An API built to heavily simplify the creation of my mods and make my life easier. Also includes some fun extras.",
+  "authors": [
+    "Moth"
+  ],
+  "license": "CC-BY-SA-4.0",
+  "environment": "*",
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "java": ">=17",
+    "fabric-api": ">=${fabric_version}",
+    "geckolib": ">=${geckolib_version}"
+  },
+  "entrypoints": {
+    "main": [
+      "moth.butterflyapi.ButterflyApiMod"
+    ],
+    "client": [
+      "moth.butterflyapi.client.ButterflyApiClient"
+    ],
+    "butterfly_api:plush": [
+      "moth.butterflyapi.content.blocks.DefaultPlushEntrypoint"
+    ]
+  },
+  "mixins": [
+    "butterfly_api.mixins.json",
+    "butterfly_api.client.mixins.json"
+  ],
+  "custom": {
+    "modrinth": {
+      "project_id": "oqeAjL2h"
+    },
+    "loom:mods": [
+      {
+        "name": "Butterfly API",
+        "value": "butterfly_api"
+      }
+    ]
+  }
+}

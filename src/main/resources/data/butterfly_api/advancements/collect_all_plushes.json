@@ -1,0 +1,20 @@
+{
+  "parent": "butterfly_api:root",
+  "display": {
+    "icon": { "item": "butterfly_api:syntax_plush" },
+    "title": { "translate": "advancements.butterfly_api.collect_all_plushes.title" },
+    "description": { "translate": "advancements.butterfly_api.collect_all_plushes.description" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "impossible": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "requirements": [
+    ["impossible"]
+  ]
+}

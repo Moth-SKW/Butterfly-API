@@ -1,0 +1,17 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "moth.butterflyapi.client.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "CreativeInventoryScreenMixin",
+    "CreativeScreenHandlerAccessor",
+    "HandledScreenAccessor",
+    "HandledScreenMixin",
+    "MinecraftClientAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "butterfly-api-refmap.json"
+}

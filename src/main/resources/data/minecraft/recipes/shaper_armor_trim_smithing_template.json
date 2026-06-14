@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "BTB",
+    "DBD",
+    "DBD"
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:terracotta"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "T": {
+      "item": "minecraft:shaper_armor_trim_smithing_template"
+    }
+  },
+  "result": {
+    "item": "minecraft:shaper_armor_trim_smithing_template",
+    "count": 4
+  }
+}

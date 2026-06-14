@@ -1,0 +1,20 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "moth.butterflyapi.content.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "AnvilScreenHandlerMixin",
+    "DemisePlayerRemainsEntityMixin",
+    "EnchantmentScreenHandlerMixin",
+    "FireBlockAccessor",
+    "ItemEntityMixin",
+    "ItemGroupBuilderAccessor",
+    "PlayerEntityMixin",
+    "SlotMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "butterfly-api-refmap.json"
+}

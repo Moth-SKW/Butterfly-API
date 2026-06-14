@@ -1,0 +1,16 @@
+{
+  "display": {
+    "icon": { "item": "butterfly_api:syntax_plush" },
+    "title": { "text": "Butterfly API" },
+    "description": { "text": "Butterfly API" },
+    "background": "minecraft:textures/gui/advancements/backgrounds/stone.png",
+    "show_toast": false,
+    "announce_to_chat": false,
+    "hidden": false
+  },
+  "criteria": {
+    "root": {
+      "trigger": "minecraft:tick"
+    }
+  }
+}

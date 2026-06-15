@@ -1,5 +1,6 @@
 package moth.butterflyapi.client.mixin;
 
+import moth.butterflyapi.ButterflyApi;
 import moth.butterflyapi.client.CreativeInventoryScreenExtension;
 import moth.butterflyapi.itemgroup.TabCategory;
 import moth.butterflyapi.itemgroup.TabLayout;
@@ -68,6 +69,15 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     @Unique
     private Map<Integer, TabSurface> butterflyApi$slotOverrides = Map.of();
 
+    @Unique
+    private static boolean butterflyApi$warnedHandledScreenAccessor;
+
+    @Unique
+    private static boolean butterflyApi$warnedCreativeHandlerAccessor;
+
+    @Unique
+    private static boolean butterflyApi$warnedMinecraftClientAccessor;
+
     @Redirect(
             method = "drawBackground",
             at = @At(
@@ -120,6 +130,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         }
 
         if (!((Object) this instanceof HandledScreenAccessor handledScreen)) {
+            butterflyApi$warnMissingHandledScreenAccessor();
             return;
         }
         int screenX = handledScreen.butterflyApi$getX();
@@ -167,6 +178,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         CreativeInventoryScreen screen = (CreativeInventoryScreen) (Object) this;
         Object rawHandler = screen.getScreenHandler();
         if (!(rawHandler instanceof CreativeScreenHandlerAccessor handler)) {
+            butterflyApi$warnMissingCreativeHandlerAccessor();
             return;
         }
         int firstVisibleRow = handler.butterflyApi$getVisibleRow(scrollPosition);
@@ -269,18 +281,44 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         }
     }
 
+    @Inject(method = "init", at = @At("TAIL"), require = 0)
+    private void butterflyApi$prepareInitialTab(CallbackInfo ci) {
+        butterflyApi$prepareCurrentTab();
+    }
+
     @Inject(method = "setSelectedTab", at = @At("RETURN"), require = 0)
     private void butterflyApi$prepareSelectedTab(ItemGroup group, CallbackInfo ci) {
+        butterflyApi$prepareTab(group);
+    }
+
+    @Inject(method = "refreshSelectedTab", at = @At("RETURN"), require = 0)
+    private void butterflyApi$restoreLayoutAfterVanillaRefresh(
+            Collection<ItemStack> displayStacks,
+            CallbackInfo ci
+    ) {
+        butterflyApi$prepareCurrentTab();
+    }
+
+    @Unique
+    private void butterflyApi$prepareCurrentTab() {
+        butterflyApi$prepareTab(selectedTab);
+    }
+
+    @Unique
+    private void butterflyApi$prepareTab(ItemGroup group) {
         TabProperties.Definition definition = butterflyApi$getDefinition(group);
-        if (searchBox == null || definition == null) {
+        if (definition == null) {
             butterflyApi$categoryRows = Map.of();
             butterflyApi$slotOverrides = Map.of();
             return;
         }
 
-        searchBox.setVisible(true);
-        searchBox.setFocusUnlocked(false);
-        searchBox.setFocused(true);
+        if (searchBox != null) {
+            searchBox.setVisible(true);
+            searchBox.setFocusUnlocked(false);
+            searchBox.setFocused(true);
+        }
+
         butterflyApi$rebuildVisibleItems(definition);
     }
 
@@ -303,6 +341,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         CreativeInventoryScreen.CreativeScreenHandler screenHandler = screen.getScreenHandler();
         Object rawHandler = screenHandler;
         if (!(rawHandler instanceof CreativeScreenHandlerAccessor handler)) {
+            butterflyApi$warnMissingCreativeHandlerAccessor();
             return;
         }
 
@@ -512,6 +551,8 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             } catch (RuntimeException ignored) {
                 globalMatches = List.of();
             }
+        } else {
+            butterflyApi$warnMissingMinecraftClientAccessor();
         }
 
         List<ItemStack> safeGlobalMatches = globalMatches;
@@ -695,6 +736,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         }
 
         if (!((Object) this instanceof HandledScreenAccessor handledScreen)) {
+            butterflyApi$warnMissingHandledScreenAccessor();
             return false;
         }
         net.minecraft.screen.slot.Slot focusedSlot = handledScreen.butterflyApi$getFocusedSlot();
@@ -705,6 +747,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         CreativeInventoryScreen screen = (CreativeInventoryScreen) (Object) this;
         Object rawHandler = screen.getScreenHandler();
         if (!(rawHandler instanceof CreativeScreenHandlerAccessor handler)) {
+            butterflyApi$warnMissingCreativeHandlerAccessor();
             return false;
         }
         int firstVisibleRow = handler.butterflyApi$getVisibleRow(scrollPosition);
@@ -715,6 +758,39 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     @Unique
     private String butterflyApi$getNormalizedQuery() {
         return searchBox == null ? "" : searchBox.getText().trim().toLowerCase(Locale.ROOT);
+    }
+
+    @Unique
+    private static void butterflyApi$warnMissingHandledScreenAccessor() {
+        if (butterflyApi$warnedHandledScreenAccessor) {
+            return;
+        }
+        butterflyApi$warnedHandledScreenAccessor = true;
+        ButterflyApi.LOGGER.error(
+                "HandledScreenAccessor was not applied; Butterfly creative-tab overlays cannot be positioned or focused correctly"
+        );
+    }
+
+    @Unique
+    private static void butterflyApi$warnMissingCreativeHandlerAccessor() {
+        if (butterflyApi$warnedCreativeHandlerAccessor) {
+            return;
+        }
+        butterflyApi$warnedCreativeHandlerAccessor = true;
+        ButterflyApi.LOGGER.error(
+                "CreativeScreenHandlerAccessor was not applied; Butterfly creative-tab categories cannot be constructed"
+        );
+    }
+
+    @Unique
+    private static void butterflyApi$warnMissingMinecraftClientAccessor() {
+        if (butterflyApi$warnedMinecraftClientAccessor) {
+            return;
+        }
+        butterflyApi$warnedMinecraftClientAccessor = true;
+        ButterflyApi.LOGGER.warn(
+                "MinecraftClientAccessor was not applied; Butterfly tab search will fall back to item names and registry ids"
+        );
     }
 
     @Unique

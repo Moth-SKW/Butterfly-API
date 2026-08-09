@@ -7,7 +7,7 @@
   "authors": [
     "Moth"
   ],
-  "license": "CC-BY-SA-4.0",
+  "license": "MIT",
   "environment": "*",
   "depends": {
     "fabricloader": ">=${loader_version}",

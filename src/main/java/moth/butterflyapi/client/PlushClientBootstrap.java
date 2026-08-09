@@ -18,6 +18,11 @@ public final class PlushClientBootstrap {
             return;
         }
 
+        if (ButterflyPlushes.all().isEmpty()) {
+            initialized = true;
+            return;
+        }
+
         BlockEntityRendererFactories.register(
                 ButterflyPlushes.blockEntityType(),
                 context -> new PlushBlockEntityRenderer(context)

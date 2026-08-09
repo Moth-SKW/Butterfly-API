@@ -59,7 +59,8 @@ public final class ButterflyPlushes {
         }
 
         if (PLUSHES.isEmpty()) {
-            throw new IllegalStateException("Butterfly plush bootstrap ran without any registered plushes");
+            bootstrapped = true;
+            return;
         }
 
         for (RegisteredPlush plush : PLUSHES.values()) {

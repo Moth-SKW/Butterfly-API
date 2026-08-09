@@ -43,8 +43,13 @@ public final class ClientOutlineBootstrap {
         ClientBlockEntityEvents.BLOCK_ENTITY_UNLOAD.register(ClientOutlineManager::onBlockEntityUnload);
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 ClientOutlineManager.onJoin(client.world));
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
-                ClientOutlineManager.onDisconnect());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            if (client.isOnThread()) {
+                ClientOutlineManager.onDisconnect();
+                return;
+            }
+            client.execute(ClientOutlineManager::onDisconnect);
+        });
         ClientTickEvents.END_CLIENT_TICK.register(ClientOutlineManager::onEndClientTick);
     }
 }

@@ -237,7 +237,6 @@ public final class ClientOutlineManager {
         LOCAL_BLOCK_ENTITY_STYLES.remove(pos);
         OutlineStyle synced = SYNCED_BLOCK_ENTITY_STYLES.remove(pos);
         if (synced != null) {
-
             PENDING_BLOCK_ENTITY_STYLES.put(pos, new PendingBlockEntityStyle(synced));
         }
         OutlineRenderBridge.clearAdaptiveThickness(blockEntity);
@@ -334,7 +333,6 @@ public final class ClientOutlineManager {
                 entityStyles.remove();
             }
         }
-
     }
 
     private static void requireClientThread() {

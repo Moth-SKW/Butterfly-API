@@ -1,6 +1,6 @@
 # Butterfly API
 
-Butterfly API is a Fabric API helper mod for Minecraft 1.21.11. It provides small, focused helpers for registration, creative tabs, plush blocks, custom outlines, math, and bootstrapping, while also shipping a little bundled content for players.
+Butterfly API is a Fabric API helper mod for Minecraft 1.21.11. It provides small, focused helpers for registration, creative tabs, plush blocks, custom outlines, math, and bootstrapping.
 
 The current project is intentionally lightweight: Java 21, Fabric Loader, Fabric API, and no GeckoLib dependency.
 
@@ -74,7 +74,7 @@ The build uses the Java 21 toolchain configured in `gradle.properties`.
 | Client helpers | `ClientRegistrar` | Render layers, renderers, screens, model layers, particles |
 | Math helpers | `Angles`, `Vecs`, `Boxes`, `Motion`, `Sampling`, `Scalars` | Common vector, angle, box, motion, and scalar utilities |
 | Bootstrap helpers | `Bootstrap`, `RunOnce` | Idempotent initialization helpers |
-| Tags | `ButterflyApiTags` | Built-in plush item and block tags |
+| Tags | `ButterflyApiTags` | Shared plush item and block tag keys |
 
 ## ModContext
 
@@ -387,8 +387,8 @@ assets/<modid>/items/<plush>.json
 assets/<modid>/textures/block/<plush>.png
 assets/<modid>/sounds.json
 assets/<modid>/sounds/<plush>_honk.ogg
-data/<modid>/loot_tables/blocks/<plush>.json
-data/<modid>/recipes/<plush>.json
+data/<modid>/loot_table/blocks/<plush>.json
+data/<modid>/recipe/<plush>.json
 ```
 
 Minimal blockstate:
@@ -431,8 +431,8 @@ ButterflyApiTags.PLUSH_ITEMS
 Datapack paths:
 
 ```text
-data/butterfly_api/tags/blocks/plushes.json
-data/butterfly_api/tags/items/plushes.json
+data/butterfly_api/tags/block/plushes.json
+data/butterfly_api/tags/item/plushes.json
 ```
 
 ## Outlines
@@ -567,18 +567,6 @@ public final class ExampleBootstrap {
     }
 }
 ```
-
-## Bundled Content
-
-Butterfly API includes:
-
-- Plushes: Syntax Plush, Hex Plush, Hex Maid Plush, Moth Plush, Chicken Plush, Capozi Plush, and Debug Plush
-- Big Red Button block with click advancements
-- Matchstick item and matchstick fire blocks
-- Connection enchantment
-- Hi painting variant
-- Butterfly API creative tab
-- Plush recipes, loot tables, tags, and the collect-all-plushes advancement
 
 ## Resource And Data Conventions
 
@@ -720,7 +708,6 @@ public final class ExamplePlushes implements PlushEntrypoint {
 src/main/java/moth/butterflyapi
   bootstrap/       Idempotent setup helpers
   client/          Client helpers, plush rendering, outline rendering
-  content/         Bundled Butterfly API content
   itemgroup/       Creative-tab builders and styling
   math/            Angle, vector, box, scalar, sampling, and motion helpers
   mod/             ModContext
@@ -729,6 +716,5 @@ src/main/java/moth/butterflyapi
   registry/        Common registration helpers
 
 src/main/resources
-  assets/          Models, textures, sounds, shaders, and lang
-  data/            Recipes, loot tables, advancements, tags, enchantments, paintings
+  assets/          API shaders and Minecraft shader overrides
 ```

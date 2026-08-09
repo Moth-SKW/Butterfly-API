@@ -1,735 +1,736 @@
 # Butterfly API
 
-Butterfly API is my Fabric 1.21.11 helper/API mod. It is mostly here so I do not have to keep rewriting the same registration helpers, item group setup, math utilities, and plush code every time I make another mod.
+Butterfly API is a Fabric API helper mod for Minecraft 1.21.11. It provides small, focused helpers for registration, creative tabs, plush blocks, custom outlines, math, and bootstrapping, while also shipping a little bundled content for players.
 
-It also comes with a few actual things in-game, because I can and I did.
+The current project is intentionally lightweight: Java 21, Fabric Loader, Fabric API, and no GeckoLib dependency.
 
-The short version: use this if you want some cleaner helper methods for Fabric modding, or if you want to add plushes that use Butterfly API's shared plush system.
-
-## REQUIREMENTS
+## Requirements
 
 - Minecraft 1.21.11
-- Java 21
+- Java 21 or newer
 - Fabric Loader 0.18.1 or newer
 - Fabric API 0.141.5+1.21.11 or newer
-- GeckoLib 5.4.5 or newer
 
-## BUILD
+## Using The Mod
 
-Build the mod jar:
-
-```powershell
-.\gradlew.bat build
-```
-
-The finished jar ends up in `build/libs/`.
-
-### Using the Modrinth version
-
-Butterfly API is published on Modrinth under the slug `butterfly-api`. If you want to use it in another Fabric mod project, add Modrinth Maven and depend on version `1.0.0`.
+If you are consuming a published build from Modrinth Maven:
 
 ```gradle
 repositories {
-    exclusiveContent {
-        forRepository {
-            maven {
-                name = "Modrinth"
-                url = "https://api.modrinth.com/maven"
-            }
-        }
-        filter {
-            includeGroup "maven.modrinth"
-        }
-    }
+    maven { url = "https://api.modrinth.com/maven" }
 }
 
 dependencies {
-    modImplementation "maven.modrinth:butterfly-api:1.0.0"
+    modImplementation "maven.modrinth:butterfly-api:1.2.0"
 }
 ```
 
-If your mod needs Butterfly API to be installed alongside it, add it to your `fabric.mod.json` too:
-
-```json
-{
-  "depends": {
-    "butterfly_api": ">=1.0.0"
-  }
-}
-```
-
-Small warning because this one is easy to forget: Modrinth Maven does not bring in transitive dependencies. Keep Fabric API, GeckoLib, and anything else your dev environment needs declared separately :D
-
-### Using a local build
-
-If you are working from source, publish it to your local Maven cache:
+If you are using a local development build, publish Butterfly API to your local Maven repository first:
 
 ```powershell
 .\gradlew.bat publishToMavenLocal
 ```
 
-Then another local Gradle project can use it like this:
+Then depend on the local coordinate:
 
 ```gradle
 repositories {
     mavenLocal()
-    maven { url = "https://maven.fabricmc.net/" }
-    maven {
-        name = "GeckoLib"
-        url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
-    }
 }
 
 dependencies {
-    modImplementation "moth.butterflyapi:Butterfly API:1.0.0"
+    modImplementation "moth.butterflyapi:butterfly-api:1.2.0"
 }
 ```
 
-## QUICK START
-
-Most of the API starts with a `ModContext`. Make one for your mod and then use it for ids, logging, registration, tabs, client helpers, and plush builders.
-
-```java
-public final class ExampleMod implements ModInitializer {
-    public static final ModContext MOD = ButterflyApi.mod("example_mod", "Example Mod");
-
-    public static final Item EXAMPLE_ITEM = MOD.item("example_item", Item::new);
-    public static final Block EXAMPLE_BLOCK = MOD.block(
-            "example_block",
-            settings -> new Block(settings.strength(1.5F))
-    );
-
-    @Override
-    public void onInitialize() {
-        MOD.addTo(ItemGroups.INGREDIENTS, EXAMPLE_ITEM);
-        MOD.logger().info("Loaded {}", MOD.modName());
-    }
-}
-```
-
-Useful context bits:
-
-- `MOD.id("path")` makes `example_mod:path`.
-- `MOD.modId()` gives the mod id.
-- `MOD.modName()` gives the display name.
-- `MOD.logger()` gives an SLF4J logger for the mod.
-- `MOD.blockSettings(path)` and `MOD.itemSettings(path)` return settings with the required 1.21.11 registry key.
-- `MOD.block(path, settings -> ...)` and `MOD.item(path, settings -> ...)` construct values from those pre-keyed settings.
-- `MOD.registrar()`, `MOD.tabs()`, and `MOD.client()` expose the helper classes directly.
-
-## USE CASES
-
-This is the "what am I actually here for?" map. The code has the tiny details, but this should help you find the right part without reading every file first.
-
-| If you want to... | Start with... | Good for... |
-| --- | --- | --- |
-| Register normal mod stuff | `ModContext` / `Registrar` | Items, blocks, sounds, enchantments, entities, particles, paintings, recipes, and similar |
-| Make or fill creative tabs | `TabBuilder` / `MOD.tabBuilder(...)` | Searchable tabs, categories, custom slot surfaces, per-entry styling, and adding entries to vanilla tabs |
-| Do client-only setup | `ClientRegistrar` / `MOD.client()` | Render layers, entity renderers, block entity renderers, screens, model predicates, particles |
-| Do gameplay math | `moth.butterflyapi.math` | Look vectors, particle circles, spread patterns, hitboxes, knockback, pushes, pulls, and value mapping |
-| Add placeable plushes | `PlushEntrypoint` / `PlushRegistrar` | Simple plushes, GeckoLib plushes, honk sounds, squish behavior, shared plush block entity setup |
-| Target all plushes at once | `ButterflyApiTags` / `#butterfly_api:plushes` | Code checks, datapack rules, loot logic, recipes, or anything that should care about every plush |
-| Stop init code from running twice | `Bootstrap` / `RunOnce` | Content bootstraps, lazy setup, and "please only do this once" code |
-| Use the built-in content | `butterfly_api` ids | Plushes, Matchstick, Big Red Button, Connection enchantment, creative tab content |
-
-## REGISTRY
-
-This part saves from typing `Registry.register(...)` over and over. Everything registers under your `ModContext` mod id.
-
-```java
-public static final Item GEM = MOD.item("gem", Item::new);
-
-public static final Block STONE_TILE = MOD.block(
-        "stone_tile",
-        settings -> new Block(settings.strength(2.0F))
-);
-
-public static final Block LOGIC_BLOCK = MOD.block(
-        "logic_block",
-        settings -> new Block(settings),
-        registeredBlock -> new BlockItem(registeredBlock, MOD.itemSettings("logic_block").maxCount(16))
-);
-
-public static final Block INVISIBLE_TECH_BLOCK = MOD.blockOnly(
-        "invisible_tech_block",
-        new Block(MOD.blockSettings("invisible_tech_block").noCollision())
-);
-
-public static final SoundEvent CHIME = MOD.sound("chime");
-```
-
-The registry helpers cover:
-
-- `register(registry, path, value)` for any registry.
-- `item(path, item)` or `item(path, settings -> ...)`.
-- `block(path, block)` with a normal `BlockItem`.
-- `block(path, block, itemSettings)` for a block with a custom item.
-- `block(path, block, BlockItemFactory)` when you want full control.
-- `blockOnly(path, block)` for blocks without items.
-- `door(path, block)` for `TallBlockItem`.
-- `sound(path)` and `sound(path, soundEvent)`.
-- `enchantment`, `entity`, `blockEntityType`, `screenHandler`, `statusEffect`, `potion`, `recipeSerializer`, `recipeType`, `particle`, and `painting`.
-
-## ITEM TABS
-
-The `Tabs` helper still supports the original `MOD.tab(...)` overloads, but the builder is where the more advanced creative-tab setup lives.
-
-Start a builder through either `MOD.tabBuilder("path")` or `MOD.tabs().builder("path")`:
-
-```java
-public static final ItemGroup EXAMPLE_TAB = MOD.tabBuilder("example")
-        .icon(EXAMPLE_ITEM)
-        .translationKey("itemGroup.example_mod.example")
-        .add(EXAMPLE_ITEM, EXAMPLE_BLOCK)
-        .build();
-```
-
-Tabs created through the builder have a search bar by default. Search results stay scoped to the selected tab instead of turning into the global vanilla search tab.
-
-The original helpers are still available:
-
-```java
-public static final ItemGroup SIMPLE_TAB = MOD.tab(
-        "simple",
-        EXAMPLE_ITEM,
-        EXAMPLE_ITEM,
-        EXAMPLE_BLOCK
-);
-
-@Override
-public void onInitialize() {
-    MOD.addTo(ItemGroups.BUILDING_BLOCKS, EXAMPLE_BLOCK);
-}
-```
-
-Useful tab entry points:
-
-- `MOD.tabBuilder("example")` starts a `TabBuilder`.
-- `MOD.tabs().builder("example")` does the same thing through the `Tabs` helper.
-- `MOD.tabKey("example")` makes the item-group registry key.
-- `MOD.tabTranslationKey("example")` returns `itemGroup.<modid>.example`.
-- `MOD.tab(...)` keeps the original simple tab overloads.
-- `MOD.addTo(groupKey, entries...)` adds items or blocks to an existing tab.
-
-### Basic builder options
-
-```java
-public static final ItemGroup EXAMPLE_TAB = MOD.tabBuilder("example")
-        .icon(EXAMPLE_ITEM)
-        .displayName(Text.literal("Example"))
-        .entries(entries -> {
-            entries.add(EXAMPLE_ITEM);
-            entries.add(EXAMPLE_BLOCK);
-        })
-        .noScrollbar()
-        .noRenderedName()
-        .build();
-```
-
-The builder supports:
-
-- `icon(ItemConvertible)` or `icon(Supplier<ItemStack>)`.
-- `displayName(Text)` or `translationKey(String)`.
-- `entries(Consumer<ItemGroup.Entries>)`.
-- `add(ItemConvertible...)`.
-- `searchBar()` when you want to state the searchable behavior explicitly.
-- `special()`.
-- `noScrollbar()`.
-- `noRenderedName()`.
-- `backgroundSuffix(String)` for a vanilla creative background suffix.
-- `backgroundTexture(Identifier)` for a full namespaced background texture.
-- `build()` to register and return the finished `ItemGroup`.
-
-### Custom creative-tab appearance
-
-A tab can replace the creative background and customize the slot grid:
-
-```java
-public static final ItemGroup EXAMPLE_TAB = MOD.tabBuilder("example")
-        .icon(EXAMPLE_ITEM)
-        .backgroundTexture(MOD.id(
-                "textures/gui/container/creative_inventory/tab_example.png"
-        ))
-        .slotBackgroundTexture(MOD.id("textures/gui/example_slot.png"))
-        .betweenSlotsColor("#30283D")
-        .tabNameColor("#F4D7FF")
-        .add(EXAMPLE_ITEM, EXAMPLE_BLOCK)
-        .build();
-```
-
-Custom appearance helpers include:
-
-- `customOverlay(true)` or `customAppearance()` to use Butterfly API's custom grid rendering.
-- `customOverlay(false)` or `vanillaAppearance()` to keep the vanilla tab appearance.
-- `slotBackgroundTexture(Identifier)` or `slotBackgroundColor("#RRGGBB")`.
-- `betweenSlotsTexture(Identifier)` or `betweenSlotsColor("#RRGGBB")`.
-- `tabNameColor("#RRGGBB")` and `defaultTabNameColor()`.
-
-A vanilla-looking tab can still receive a tint:
-
-```java
-public static final ItemGroup TINTED_TAB = MOD.tabBuilder("tinted")
-        .icon(EXAMPLE_ITEM)
-        .vanillaTint("#D77FA6")
-        .add(EXAMPLE_ITEM)
-        .build();
-```
-
-Tinting is intentionally limited to vanilla appearance. This keeps it as the lightweight option for a tab that should still look vanilla instead of mixing it with the full custom overlay.
-
-Supported tint forms:
-
-```java
-.vanillaTint("#D77FA6")
-.vanillaTint("#D77FA6", 0.25F)
-.vanillaAppearance().tint("#40D77FA6")
-```
-
-Six-digit tint colors use Butterfly API's default transparency. Eight-digit tint colors use `#AARRGGBB`.
-
-### Categories
-
-Categories reserve a full horizontal row, display a heading, and place their entries beneath it. Entries added directly to the main builder stay uncategorized and appear before the categories.
-
-```java
-public static final ItemGroup EXAMPLE_TAB = MOD.tabBuilder("example")
-        .icon(EXAMPLE_ITEM)
-        .add(UNCATEGORIZED_ITEM)
-        .category("building", Text.literal("Building"), category -> category
-                .alignLeft()
-                .backgroundTexture(MOD.id("textures/gui/building_category.png"))
-                .borderColor("#5B435F")
-                .textColor("#FFFFFF")
-                .add(EXAMPLE_BLOCK))
-        .category("items", Text.literal("Items"), category -> category
-                .alignCenter()
-                .backgroundColor("#93678F")
-                .add(EXAMPLE_ITEM))
-        .build();
-```
-
-Category helpers include:
-
-- `alignLeft()`, `alignCenter()`, and `alignRight()`.
-- `textAlignment(TabCategory.TextAlignment)`.
-- `backgroundTexture(Identifier)` or `backgroundColor("#RRGGBB")`.
-- `borderColor("#RRGGBB")`.
-- `textColor("#RRGGBB")`.
-- `entries(...)`, `add(...)`, and the same styled-entry helpers as the main builder.
-- `emptySlot()` for one deliberately empty position.
-- `emptyRow()` for a full cushion row.
-
-Categories appear in registration order unless `categoryOrder(...)` is used to provide an explicit order. A category with no matching entries is hidden while searching.
-
-### Per-entry slot appearance
-
-Normal entries automatically use the tab-wide slot texture or color:
-
-```java
-.add(EXAMPLE_ITEM)
-```
-
-A specific entry can override that surface:
-
-```java
-.entry(EXAMPLE_ITEM, entry -> entry
-        .slotColor("#E68FB3"))
-```
-
-Texture overrides work the same way:
-
-```java
-.entry(EXAMPLE_BLOCK, entry -> entry
-        .slotTexture(MOD.id("textures/gui/example_block_slot.png")))
-```
-
-The longer method names are also available:
-
-```java
-.entry(EXAMPLE_ITEM, entry -> entry
-        .slotBackgroundColor("#E68FB3"))
-
-.entry(EXAMPLE_BLOCK, entry -> entry
-        .slotBackgroundTexture(MOD.id("textures/gui/example_block_slot.png")))
-```
-
-The same styling API is available inside categories and for search-only entries.
-
-### Search-only entries
-
-Search-only entries do not appear while the search field is empty. They become visible only when the current search matches them.
-
-```java
-public static final ItemGroup EXAMPLE_TAB = MOD.tabBuilder("example")
-        .icon(EXAMPLE_ITEM)
-        .add(EXAMPLE_ITEM)
-        .searchOnly(SECRET_ITEM)
-        .searchOnlyEntry(SECRET_BLOCK, entry -> entry
-                .slotColor("#6B4C8C"))
-        .build();
-```
-
-Normal entries do not require any extra code. Keep using `add(...)`, `entries(...)`, or `entry(...)` unless something should specifically be hidden until searched.
-
-### Empty slots and rows
-
-Empty positions still render the configured slot texture or color:
-
-```java
-public static final ItemGroup EXAMPLE_TAB = MOD.tabBuilder("example")
-        .icon(EXAMPLE_ITEM)
-        .add(EXAMPLE_ITEM)
-        .emptySlot()
-        .add(EXAMPLE_BLOCK)
-        .emptyRow()
-        .add(ANOTHER_ITEM)
-        .build();
-```
-
-- `emptySlot()` reserves one slot.
-- `emptyRow()` finishes the current row and adds a full empty cushion row.
-- Empty positions keep the normal slot hover overlay.
-- Category heading rows do not show individual slot hover overlays.
-
-### Texture dimensions
-
-Butterfly API stretches supplied textures to the expected UI area, so larger textures with the same ratio also work.
-
-Recommended native sizes:
-
-- Full creative background: `195x136`.
-- Slot texture: `16x16`.
-- Category texture: `160x16`.
-- Vanilla search field width: `80`.
-
-A category texture uses a `10:1` ratio. `320x32` or `640x64` will scale correctly, while a different ratio will be stretched to fit.
-
-Example asset paths:
-
-```text
-assets/example_mod/textures/gui/container/creative_inventory/tab_example.png
-assets/example_mod/textures/gui/example_slot.png
-assets/example_mod/textures/gui/example_category.png
-```
-
-## CLIENT
-
-Client setup gets its own little wrapper too. Use these from your client entrypoint.
-
-```java
-public final class ExampleClient implements ClientModInitializer {
-    @Override
-    public void onInitializeClient() {
-        ExampleMod.MOD.cutout(ExampleMod.EXAMPLE_BLOCK);
-        ExampleMod.MOD.entityRenderer(ExampleMod.EXAMPLE_ENTITY, ExampleEntityRenderer::new);
-        ExampleMod.MOD.blockEntityRenderer(ExampleMod.EXAMPLE_BLOCK_ENTITY, ExampleBlockEntityRenderer::new);
-    }
-}
-```
-
-Client helpers include:
-
-- `cutout`, `cutoutMipped`, and `translucent` render layers.
-- `entityRenderer` for entity renderers.
-- `blockEntityRenderer` for block entity renderers.
-- `screen` for handled screens.
-- `predicate` for item model predicates.
-- `modelLayer` for entity model layers.
-- `particleFactory` for particle factories.
-
-## OUTLINES
-
-Butterfly's outline API renders the actual model silhouette, so vanilla entity
-renderers, GeckoLib renderers, and the bundled block-entity plush renderers can
-share the same effect without a consumer-side mixin.
-
-```java
-OutlineStyle style = OutlineStyle.builder("#B026FF")
-        .thickness(4)
-        .placement(OutlinePlacement.OUTSIDE)
-        .visibleThroughWalls(true)
-        .build();
-
-// Client-only: this player sees the local outline.
-ClientOutlines.set(entity, style);
-
-// Logical server: all current/future tracking players see it.
-ServerOutlines.set(entity, style);
-
-// Logical server: only one viewer sees it.
-ServerOutlines.setFor(viewer, entity, style);
-```
-
-`OutlinePlacement.CENTERED`, `OUTSIDE`, and `INSIDE` control which side of the
-rendered edge receives the width. Thickness is in framebuffer pixels. By
-default that width is consistent at every distance; to let it become thinner
-with distance, opt out and choose how quickly it follows camera movement:
-
-```java
-OutlineStyle distanceScaled = style.toBuilder()
-        .consistentThickness(false)
-        .thicknessAdaptationRate(0.15F)
-        .build();
-```
-
-The adaptation rate is a per-rendered-frame fraction: `1.0F` follows the new
-distance immediately, while smaller values ease toward it. The reference
-distance is 16 blocks, and the default remains the original fixed-width
-behavior for compatibility.
-
-`OutlineStyle` also supports `blackBorder`, `visibleThroughWalls`, and
-`matchModelLayer`. Clearing a custom style restores vanilla glowing behavior;
-the entity's normal glowing flags and team-color semantics are unchanged.
-Block-entity overloads are available on both `ClientOutlines` and
-`ServerOutlines`.
-
-For a renderer that uses a custom `RenderLayer` or direct model pass, wrap its
-provided vertex-consumer provider with `OutlineRenderers.capture(...)`. Raw GL
-or instanced geometry that bypasses the provider cannot be inferred as a model
-silhouette, so Butterfly intentionally does not fall back to hitboxes.
-
-## MATH
-
-The math package is a pile of small helpers that are useful when working with particles, movement, targeting, hitboxes, and general "where is this thing in 3D space" code.
-
-### Scalars
-
-`Scalars` is for tiny number helpers:
-
-- `clamp01`
-- `square` and `cube`
-- `isZero` and `nearlyEqual`
-- `lerp` and `inverseLerp`
-- `map` and `mapClamped`
-- `approach`
-- `roundTo`
-- `EPSILON`
-
-### Vecs
-
-`Vecs` is for `Vec3d` work:
-
-- `safeNormalize(vector)` and `safeNormalize(vector, fallback)`.
-- `horizontal`, `withX`, `withY`, `withZ`.
-- `addX`, `addY`, `addZ`.
-- `scaleX`, `scaleY`, `scaleZ`.
-- `midpoint`, `lerp`, `toward`, `direction`.
-- `setLength`, `limitLength`, `clampLength`.
-- `projectOnto`, `rejectFrom`, `reflect`, `perpendicular`.
-- `closestPointOnSegment`, `distanceToSegment`, `distanceSqToSegment`.
-- `lengthSquared`.
-
-### Angles and YawPitch
-
-`Angles` and `YawPitch` are for turning rotations into vectors and vectors back into rotations.
-
-- degrees/radians conversion.
-- degree and radian wrapping.
-- shortest-angle deltas.
-- degree lerp that handles wraparound properly.
-- `direction(yaw, pitch)`.
-- `yaw`, `pitch`, `yawPitch`, and `lookAt`.
-
-```java
-Vec3d direction = Angles.direction(player.getYaw(), player.getPitch());
-YawPitch look = Angles.lookAt(player.getEyePos(), target.getEyePos());
-```
-
-### Basis, Sampling, Boxes, and Motion
-
-`Basis3` makes a local forward/right/up basis from a direction. `Sampling` makes ring, circle, arc, and spread points. `Boxes` makes common `Box` shapes. `Motion` handles velocity, impulses, knockback, pushes, and pulls.
-
-```java
-Vec3d forward = Vecs.direction(player.getEyePos(), target.getEyePos());
-List<Vec3d> ring = Sampling.circle(target.getPos(), forward, 2.0D, 16);
-Box traceBox = Boxes.between(player.getEyePos(), target.getEyePos(), 0.25D);
-Motion.pushFrom(target, player, 0.8D, 0.25D);
-```
-
-## PLUSHES
-
-This is the fun part, but it is still an actual API. Butterfly API has a shared plush system for small placeable plush blocks, so other mods can add plushes without each one needing its own block entity setup.
-
-Plushes are:
-
-- Registered through the `butterfly_api:plush` entrypoint before plush bootstrap finishes.
-- Bound into one shared `butterfly_api:plush` block entity type.
-- Waterloggable and horizontally facing.
-- Clickable, with a mode toggle, honk sound, and squish effect.
-- Rendered with either a normal block model or GeckoLib.
-- Customizable with block settings, item settings, sounds, animation controllers, render scale/offset, and use behavior.
-
-Add a plush entrypoint in `fabric.mod.json`:
+Add the dependency to your `fabric.mod.json`:
 
 ```json
 {
-  "entrypoints": {
-    "butterfly_api:plush": [
-      "example.ExamplePlushes"
+  "depends": {
+    "butterfly_api": ">=1.2.0"
+  }
+}
+```
+
+## Building Butterfly API
+
+```powershell
+.\gradlew.bat build
+.\gradlew.bat runClient
+```
+
+The build uses the Java 21 toolchain configured in `gradle.properties`.
+
+## What It Provides
+
+| Area | Main classes | Purpose |
+| --- | --- | --- |
+| Mod context | `ButterflyApi`, `ModContext` | Namespaced ids, keyed settings, logger, registration helpers |
+| Registry helpers | `Registrar`, `BlockItemFactory` | Register common content with less repeated boilerplate |
+| Creative tabs | `Tabs`, `TabBuilder`, `TabCategory`, `TabEntryStyle` | Build normal or styled creative tabs with categories |
+| Plushes | `PlushEntrypoint`, `PlushRegistrar`, `PlushDefinition` | Register squishable block-model plushes with sounds |
+| Outlines | `ServerOutlines`, `ClientOutlines`, `OutlineStyle` | Sync and render colored outlines for entities and block entities |
+| Client helpers | `ClientRegistrar` | Render layers, renderers, screens, model layers, particles |
+| Math helpers | `Angles`, `Vecs`, `Boxes`, `Motion`, `Sampling`, `Scalars` | Common vector, angle, box, motion, and scalar utilities |
+| Bootstrap helpers | `Bootstrap`, `RunOnce` | Idempotent initialization helpers |
+| Tags | `ButterflyApiTags` | Built-in plush item and block tags |
+
+## ModContext
+
+Create one `ModContext` for your mod and reuse it anywhere you need ids or registration helpers.
+
+```java
+package com.example;
+
+import moth.butterflyapi.ButterflyApi;
+import moth.butterflyapi.mod.ModContext;
+
+public final class ExampleContent {
+    public static final ModContext MOD = ButterflyApi.mod("example_mod", "Example Mod");
+
+    private ExampleContent() {
+    }
+}
+```
+
+`ModContext` gives you:
+
+- `MOD.id("path")` for `example_mod:path`
+- `MOD.blockKey("path")` and `MOD.itemKey("path")`
+- `MOD.blockSettings("path")` and `MOD.itemSettings("path")`
+- `MOD.registrar()`, `MOD.tabs()`, and `MOD.client()`
+- shortcut methods such as `MOD.item(...)`, `MOD.block(...)`, `MOD.sound(...)`, and `MOD.tabBuilder(...)`
+
+Minecraft 1.21.11 expects many block and item settings to already contain their registry key before construction. Prefer `MOD.blockSettings(path)` and `MOD.itemSettings(path)` when constructing your own blocks and items.
+
+## Registration Examples
+
+Items:
+
+```java
+import net.minecraft.item.Item;
+
+public static final Item SILK_SCRAP = MOD.item(
+        "silk_scrap",
+        settings -> new Item(settings.maxCount(64))
+);
+```
+
+Blocks with matching block items:
+
+```java
+import net.minecraft.block.Block;
+import net.minecraft.sound.BlockSoundGroup;
+
+public static final Block POLISHED_SILK = MOD.block(
+        "polished_silk",
+        settings -> new Block(settings
+                .strength(1.5F, 3.0F)
+                .sounds(BlockSoundGroup.WOOL))
+);
+```
+
+Blocks with custom block-item settings:
+
+```java
+import net.minecraft.block.Block;
+import net.minecraft.item.BlockItem;
+
+public static final Block DISPLAY_CASE = new Block(MOD.blockSettings("display_case").strength(1.0F));
+
+static {
+    MOD.block(
+            "display_case",
+            DISPLAY_CASE,
+            block -> new BlockItem(block, MOD.itemSettings("display_case").maxCount(16))
+    );
+}
+```
+
+Blocks without items:
+
+```java
+public static final Block INVISIBLE_TRIGGER = MOD.blockOnly(
+        "invisible_trigger",
+        new Block(MOD.blockSettings("invisible_trigger").noCollision().nonOpaque())
+);
+```
+
+Tall doors:
+
+```java
+import net.minecraft.block.DoorBlock;
+import net.minecraft.block.BlockSetType;
+
+public static final DoorBlock SILK_DOOR = MOD.door(
+        "silk_door",
+        new DoorBlock(BlockSetType.OAK, MOD.blockSettings("silk_door").strength(2.0F))
+);
+```
+
+Sounds:
+
+```java
+import net.minecraft.sound.SoundEvent;
+
+public static final SoundEvent SILK_CHIME = MOD.sound("silk_chime");
+```
+
+Add a matching entry to `assets/<modid>/sounds.json`:
+
+```json
+{
+  "silk_chime": {
+    "sounds": [
+      "example_mod:silk_chime"
     ]
   }
 }
 ```
 
-Register plushes from that entrypoint:
+Other supported registry shortcuts include:
 
 ```java
+MOD.entity("fluttering_mob", entityType);
+MOD.blockEntityType("display_case", blockEntityType);
+MOD.screenHandler("display_case", screenHandlerType);
+MOD.statusEffect("silk_touchdown", statusEffect);
+MOD.potion("silk_touchdown", potion);
+MOD.recipeSerializer("looming", recipeSerializer);
+MOD.recipeType("looming", recipeType);
+MOD.particle("sparkle", particleType);
+```
+
+Enchantments and paintings are data-driven in 1.21.11. Butterfly API keeps `MOD.enchantment(...)` and `MOD.painting(...)` as convenience no-ops so old setup code can keep a named object, but the actual entries should live under `data/<modid>/enchantment` and `data/<modid>/painting_variant`.
+
+## Creative Tabs
+
+A simple tab:
+
+```java
+import net.minecraft.item.ItemGroup;
+
+public static final ItemGroup EXAMPLE_TAB = MOD.tab(
+        "main",
+        SILK_SCRAP,
+        SILK_SCRAP,
+        POLISHED_SILK
+);
+```
+
+The default translation key is:
+
+```text
+itemGroup.<modid>.<path>
+```
+
+For the example above, add this to `assets/example_mod/lang/en_us.json`:
+
+```json
+{
+  "itemGroup.example_mod.main": "Example Mod"
+}
+```
+
+A categorized custom tab:
+
+```java
+import net.minecraft.item.ItemGroup;
+import net.minecraft.text.Text;
+
+public static final ItemGroup EXAMPLE_TAB = MOD.tabBuilder("main")
+        .icon(EXAMPLEST_ITEM_EVER)
+        .translationKey("itemGroup.example_mod.main")
+        .backgroundTexture(MOD.id("textures/gui/example_tab.png"))
+        .slotBackgroundColor("#222222")
+        .betweenSlotsColor("#111111")
+        .tabNameColor("#FFE8F5")
+        .category("materials", Text.translatable("itemGroup.example_mod.category.materials"), category -> category
+                .alignLeft()
+                .backgroundColor("#35303A")
+                .borderColor("#665578")
+                .textColor("#FFE8F5")
+                .add(EXAMPLEST_ITEM_EVER)
+                .entry(EXAMPLEST_ITEM_EVER_BUT_BETTER, entry -> entry.slotColor("#463B51")))
+        .category("tools", Text.translatable("itemGroup.example_mod.category.tools"), category -> category
+                .backgroundColor("#2F3740")
+                .add(EXAMPLE_TOOL))
+        .categoryOrder("materials", "tools")
+        .searchOnly(EXAMPLEST_ITEM_EVER_BUT_HIDDEN)
+        .build();
+```
+
+Category names can be literals or translatable text. If a category name appears as a raw translation key in game, add that key to your language file:
+
+```json
+{
+  "itemGroup.example_mod.category.materials": "Materials",
+  "itemGroup.example_mod.category.tools": "Tools"
+}
+```
+
+You can also add entries to vanilla or existing tabs:
+
+```java
+import net.minecraft.item.ItemGroups;
+
+MOD.addTo(ItemGroups.INGREDIENTS, EXAMPLEST_ITEM_EVER);
+MOD.addTo(ItemGroups.BUILDING_BLOCKS, EXAMPLEST_ITEM_EVER_BUT_BETTER);
+```
+
+## Client Registration
+
+Use the client helpers from a `ClientModInitializer` only. Calling `MOD.client()` on a dedicated server will throw.
+
+```java
+import net.fabricmc.api.ClientModInitializer;
+
+public final class ExampleClient implements ClientModInitializer {
+    @Override
+    public void onInitializeClient() {
+        MOD.cutout(EXAMPLEST_ITEM_EVER_BUT_BETTER);
+        MOD.translucent(DISPLAY_CASE);
+        MOD.entityRenderer(EXAMPLEST_ENTITY, ExampleEntityRenderer::new);
+        MOD.blockEntityRenderer(DISPLAY_CASE_BLOCK_ENTITY, ExampleDisplayCaseRenderer::new);
+        MOD.screen(EXAMPLEST_SCREEN_HANDLER, ExampleScreen::new);
+        MOD.modelLayer(EXAMPLEST_MODEL_LAYER, ExampleModel::getTexturedModelData);
+        MOD.particleFactory(EXAMPLEST_PARTICLE, ExampleParticle.Factory::new);
+    }
+}
+```
+
+`cutoutMipped(...)` currently maps to the same 1.21.11 block render layer as `cutout(...)`.
+
+## Plush API
+
+Butterfly plushes are block-model plush blocks with:
+
+- a placed block
+- a matching block item
+- a shared plush block entity type
+- a honk sound
+- squish state when interacted with
+- normal block-model lighting and cutout texture support
+
+They do not use GeckoLib. Plush models should be normal vanilla block models.
+
+Create a plush entrypoint:
+
+```java
+package com.example;
+
+import moth.butterflyapi.ButterflyApi;
+import moth.butterflyapi.mod.ModContext;
+import moth.butterflyapi.plush.PlushEntrypoint;
+import moth.butterflyapi.plush.PlushRegistrar;
+import net.minecraft.block.AbstractBlock;
+import net.minecraft.sound.BlockSoundGroup;
+
 public final class ExamplePlushes implements PlushEntrypoint {
     private static final ModContext MOD = ButterflyApi.mod("example_mod", "Example Mod");
 
     @Override
     public void registerPlushes(PlushRegistrar registrar) {
-        registrar.plush(MOD, "plain_plush");
+        registrar.plush(MOD, "glow_moth_plush");
 
-        registrar.plush(MOD, "custom_plush", builder -> builder
-                .sound("custom_plush_honk")
-                .itemSettings(new Item.Settings().maxCount(16))
-                .onUse(plush -> plush.squish(2)));
-
-        registrar.geckoPlush(MOD, "animated_plush", builder -> builder
-                .loopingAnimation("idle")
-                .geckolib(PlushDefinition.GeckoRenderData
-                        .block(MOD, "animated_plush")
-                        .withScale(0.9F)
-                        .withOffset(0.0F, 0.0F, 0.0F)));
+        registrar.plush(MOD, "heavy_plush", plush -> plush
+                .sound("glow_moth_plush_honk")
+                .blockSettings(AbstractBlock.Settings.create()
+                        .strength(0.5F)
+                        .sounds(BlockSoundGroup.WOOL)
+                        .nonOpaque()
+                        .dynamicBounds())
+                .itemSettings(MOD.itemSettings("heavy_plush").maxCount(16))
+                .onUse(blockEntity -> blockEntity.markDirty()));
     }
 }
 ```
 
-Default plush conventions:
+Register the entrypoint in your `fabric.mod.json`:
 
-- Default sound id is `<namespace>:<path>_honk`.
-- Normal plushes use normal blockstate, block model, item model, and texture assets.
-- Gecko plushes default to:
-  - `assets/<modid>/geo/block/<path>.geo.json`
-  - `assets/<modid>/textures/block/<path>.png`
-  - `assets/<modid>/animations/block/<path>.animation.json`
-
-After bootstrap, a registered plush gives you its block, item, and sound:
-
-```java
-RegisteredPlush plush = ButterflyPlushes.get(MOD.id("plain_plush"));
-Block block = plush.block();
-Item item = plush.item();
-SoundEvent sound = plush.sound();
-```
-
-Register plushes through the entrypoint path. Once `ButterflyPlushes.bootstrap()` has run, the shared block entity type is already built and new plushes cannot be added.
-
-## TAGS AND DATAPACKS
-
-Butterfly API exposes plush tags for code and datapacks.
-
-```java
-if (stack.isIn(ButterflyApiTags.PLUSH_ITEMS)) {
-    // This item is a Butterfly API plush item.
+```json
+{
+  "entrypoints": {
+    "butterfly_api:plush": [
+      "com.example.ExamplePlushes"
+    ]
+  }
 }
 ```
 
-Code helpers:
+The default plush sound id is `<modid>:<plush_path>_honk`. For `example_mod:glow_moth_plush`, add this to `assets/example_mod/sounds.json`:
 
-- `ButterflyApiTags.PLUSH_BLOCKS`
-- `ButterflyApiTags.PLUSH_ITEMS`
-- `ButterflyApiTags.block("path")`
-- `ButterflyApiTags.item("path")`
+```json
+{
+  "glow_moth_plush_honk": {
+    "sounds": [
+      "example_mod:glow_moth_plush_honk"
+    ]
+  }
+}
+```
 
-Datapack ids:
+Then place the sound at:
 
-- `#butterfly_api:plushes` for item tags.
-- `#butterfly_api:plushes` for block tags.
+```text
+assets/example_mod/sounds/glow_moth_plush_honk.ogg
+```
 
-The bundled plush tag currently contains:
+Recommended plush resource checklist:
 
-- `butterfly_api:syntax_plush`
-- `butterfly_api:hex_plush`
-- `butterfly_api:hex_maid_plush`
-- `butterfly_api:moth_plush`
-- `butterfly_api:chicken_plush`
-- `butterfly_api:capozi_plush`
-- `butterfly_api:debug_plush`
+```text
+assets/<modid>/blockstates/<plush>.json
+assets/<modid>/models/block/<plush>.json
+assets/<modid>/models/item/<plush>.json
+assets/<modid>/items/<plush>.json
+assets/<modid>/textures/block/<plush>.png
+assets/<modid>/sounds.json
+assets/<modid>/sounds/<plush>_honk.ogg
+data/<modid>/loot_tables/blocks/<plush>.json
+data/<modid>/recipes/<plush>.json
+```
 
-## BOOTSTRAP HELPERS
+Minimal blockstate:
 
-`RunOnce` and `Bootstrap` are tiny helpers for init code that should only run once.
+```json
+{
+  "variants": {
+    "facing=north": { "model": "example_mod:block/glow_moth_plush" },
+    "facing=east": { "model": "example_mod:block/glow_moth_plush", "y": 90 },
+    "facing=south": { "model": "example_mod:block/glow_moth_plush", "y": 180 },
+    "facing=west": { "model": "example_mod:block/glow_moth_plush", "y": 270 }
+  }
+}
+```
+
+Minimal item model files for Minecraft 1.21.11:
+
+```json
+{
+  "model": {
+    "type": "minecraft:model",
+    "model": "example_mod:item/glow_moth_plush"
+  }
+}
+```
+
+```json
+{
+  "parent": "example_mod:block/glow_moth_plush"
+}
+```
+
+Plush blocks and items are automatically added to:
 
 ```java
-private static final Bootstrap BOOTSTRAP = Bootstrap.create();
+ButterflyApiTags.PLUSH_BLOCKS
+ButterflyApiTags.PLUSH_ITEMS
+```
 
-public static void init() {
-    BOOTSTRAP.run(
-            ModItems::init,
-            ModBlocks::init,
-            ModSounds::init
+Datapack paths:
+
+```text
+data/butterfly_api/tags/blocks/plushes.json
+data/butterfly_api/tags/items/plushes.json
+```
+
+## Outlines
+
+Butterfly API can outline entities and block entities from either the server or the local client.
+
+Server-synced outline for every viewer:
+
+```java
+import moth.butterflyapi.outline.OutlinePlacement;
+import moth.butterflyapi.outline.OutlineStyle;
+import moth.butterflyapi.outline.ServerOutlines;
+
+OutlineStyle questStyle = OutlineStyle.builder("#FFFFFF")
+        .thickness(2)
+        .placement(OutlinePlacement.CENTERED)
+        .blackBorder(false)
+        .visibleThroughWalls(true)
+        .matchModelLayer(true)
+        .consistentThickness(true)
+        .build();
+
+ServerOutlines.set(targetEntity, questStyle);
+ServerOutlines.clear(targetEntity);
+```
+
+Viewer-specific server outline:
+
+```java
+ServerOutlines.setFor(player, targetEntity, OutlineStyle.builder("#66CCFF")
+        .thickness(3)
+        .placement(OutlinePlacement.OUTSIDE)
+        .build());
+
+ServerOutlines.clearFor(player, targetEntity);
+```
+
+Block entity outlines use the same methods:
+
+```java
+ServerOutlines.set(displayCaseBlockEntity, OutlineStyle.of("#FFFFFF"));
+ServerOutlines.clear(displayCaseBlockEntity);
+```
+
+Local client-only outlines:
+
+```java
+import moth.butterflyapi.client.outline.ClientOutlines;
+
+ClientOutlines.set(entity, OutlineStyle.builder("#FFAA33").thickness(2).build());
+ClientOutlines.clear(entity);
+ClientOutlines.clearAll();
+```
+
+Style notes:
+
+- Colors are RGB only, such as `"#FFFFFF"` or `0xFFFFFF`.
+- Thickness is measured in pixels and must be between `1` and `63`.
+- `blackBorder(true)` supports thickness up to `22`.
+- `visibleThroughWalls(true)` keeps outlines visible through depth.
+- `matchModelLayer(true)` helps mask cutout or translucent render layers correctly.
+- `consistentThickness(true)` keeps the requested width stable across distance.
+- `placement(...)` can be `CENTERED`, `OUTSIDE`, or `INSIDE`.
+
+For custom renderers that need to contribute their own outline mask, use `OutlineRenderers.capture(...)` on the client. Block entities whose renderer only exists for outline-mask contribution can implement `OutlineOnlyBlockEntity` so the normal block model is still rendered by the chunk renderer.
+
+## Math Helpers
+
+Angles:
+
+```java
+double yawDelta = Angles.deltaDegrees(entity.getYaw(), targetYaw);
+Vec3d direction = Angles.direction(entity.getYaw(), entity.getPitch());
+YawPitch look = Angles.lookAt(entity.getEyePos(), target.getEyePos());
+```
+
+Vectors:
+
+```java
+Vec3d towardTarget = Vecs.direction(entity.getPos(), target.getPos(), Vec3d.ZERO);
+Vec3d capped = Vecs.limitLength(entity.getVelocity(), 0.5D);
+Vec3d reflected = Vecs.reflect(incoming, surfaceNormal);
+```
+
+Boxes:
+
+```java
+Box searchArea = Boxes.around(entity.getPos(), 8.0D);
+Box beamArea = Boxes.between(start, end, 0.25D);
+Vec3d center = Boxes.center(searchArea);
+```
+
+Motion:
+
+```java
+Motion.pushFrom(target, source, 0.8D, 0.2D);
+Motion.pullToward(projectile, target.getPos(), 0.4D, 0.0D);
+```
+
+Sampling:
+
+```java
+for (Vec3d point : Sampling.circle(center, new Vec3d(0.0D, 1.0D, 0.0D), 2.0D, 16)) {
+    world.addParticle(particle, point.x, point.y, point.z, 0.0D, 0.0D, 0.0D);
+}
+```
+
+Scalars:
+
+```java
+double progress = Scalars.clamp01(Scalars.inverseLerp(value, min, max));
+double mapped = Scalars.mapClamped(distance, 0.0D, 32.0D, 1.0D, 0.0D);
+double eased = Scalars.approach(current, target, step);
+```
+
+## Bootstrap Helpers
+
+`Bootstrap` and `RunOnce` help keep initialization idempotent.
+
+```java
+import moth.butterflyapi.bootstrap.Bootstrap;
+
+public final class ExampleBootstrap {
+    private static final Bootstrap BOOTSTRAP = Bootstrap.create();
+
+    public static void init() {
+        BOOTSTRAP.run(
+                ExampleItems::init,
+                ExampleBlocks::init,
+                ExampleSounds::init
+        );
+    }
+}
+```
+
+## Bundled Content
+
+Butterfly API includes:
+
+- Plushes: Syntax Plush, Hex Plush, Hex Maid Plush, Moth Plush, Chicken Plush, Capozi Plush, and Debug Plush
+- Big Red Button block with click advancements
+- Matchstick item and matchstick fire blocks
+- Connection enchantment
+- Hi painting variant
+- Butterfly API creative tab
+- Plush recipes, loot tables, tags, and the collect-all-plushes advancement
+
+The old void testing/debug blocks are not part of the current mod.
+
+## Resource And Data Conventions
+
+Common translation keys:
+
+```json
+{
+  "item.example_mod.silk_scrap": "Silk Scrap",
+  "block.example_mod.polished_silk": "Polished Silk",
+  "itemGroup.example_mod.main": "Example Mod"
+}
+```
+
+For data-driven registry entries in 1.21.11, prefer data files:
+
+```text
+data/<modid>/enchantment/<id>.json
+data/<modid>/painting_variant/<id>.json
+data/minecraft/tags/painting_variant/placeable.json
+```
+
+For block items in 1.21.11, remember both item model layers:
+
+```text
+assets/<modid>/items/<id>.json
+assets/<modid>/models/item/<id>.json
+```
+
+## Complete Mini Implementation
+
+`fabric.mod.json`:
+
+```json
+{
+  "entrypoints": {
+    "main": [
+      "com.example.ExampleMod"
+    ],
+    "client": [
+      "com.example.ExampleClient"
+    ],
+    "butterfly_api:plush": [
+      "com.example.ExamplePlushes"
+    ]
+  },
+  "depends": {
+    "butterfly_api": ">=1.2.0"
+  }
+}
+```
+
+Main initializer:
+
+```java
+package com.example;
+
+import moth.butterflyapi.ButterflyApi;
+import moth.butterflyapi.bootstrap.Bootstrap;
+import moth.butterflyapi.mod.ModContext;
+import net.fabricmc.api.ModInitializer;
+import net.minecraft.block.Block;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemGroup;
+import net.minecraft.sound.BlockSoundGroup;
+
+public final class ExampleMod implements ModInitializer {
+    public static final ModContext MOD = ButterflyApi.mod("example_mod", "Example Mod");
+    private static final Bootstrap BOOTSTRAP = Bootstrap.create();
+
+    public static final Item SILK_SCRAP = MOD.item(
+            "silk_scrap",
+            settings -> new Item(settings.maxCount(64))
     );
+
+    public static final Block POLISHED_SILK = MOD.block(
+            "polished_silk",
+            settings -> new Block(settings.strength(1.5F).sounds(BlockSoundGroup.WOOL))
+    );
+
+    public static final ItemGroup TAB = MOD.tabBuilder("main")
+            .icon(SILK_SCRAP)
+            .translationKey("itemGroup.example_mod.main")
+            .category("blocks", "Blocks", category -> category.add(POLISHED_SILK))
+            .category("items", "Items", category -> category.add(SILK_SCRAP))
+            .categoryOrder("blocks", "items")
+            .build();
+
+    @Override
+    public void onInitialize() {
+        BOOTSTRAP.run(() -> MOD.logger().info("Initialized {}", MOD.modName()));
+    }
 }
 ```
 
-`Bootstrap.run(...)` returns `true` the first time it runs and `false` after that. `hasRun()` tells you whether it already fired.
+Client initializer:
 
-## BUNDLED CONTENT
+```java
+package com.example;
 
-Butterfly API is not only helper classes. It also ships some content under the `butterfly_api` namespace.
+import net.fabricmc.api.ClientModInitializer;
 
-### Plushes
+public final class ExampleClient implements ClientModInitializer {
+    @Override
+    public void onInitializeClient() {
+        ExampleMod.MOD.cutout(ExampleMod.POLISHED_SILK);
+    }
+}
+```
 
-Bundled plushes:
+Plush entrypoint:
 
-- Syntax Plush
-- Hex Plush
-- Hex Maid Plush
-- Moth Plush, using GeckoLib animation
-- Chicken Plush
-- Capozi Plush
-- Debug Plush
+```java
+package com.example;
 
-Each plush is placeable, interactable, tagged as a plush, has a honk sound, and appears in the Butterfly API creative tab. There is also a `collect_all_plushes` advancement.
+import moth.butterflyapi.plush.PlushEntrypoint;
+import moth.butterflyapi.plush.PlushRegistrar;
 
-### Big Red Button
+public final class ExamplePlushes implements PlushEntrypoint {
+    @Override
+    public void registerPlushes(PlushRegistrar registrar) {
+        registrar.plush(ExampleMod.MOD, "glow_moth_plush");
+    }
+}
+```
 
-`butterfly_api:big_red_button` is exactly what it sounds like. It can be placed on floors, walls, or ceilings, and it tracks each player's clicks.
+## Troubleshooting
 
-It grants advancements at:
+- A creative tab name shows as a raw key: add `itemGroup.<modid>.<path>` or your custom category translation key to `assets/<modid>/lang/en_us.json`.
+- A block or item crashes during construction: make sure its settings came from `MOD.blockSettings(path)` or `MOD.itemSettings(path)`, or that you attached the correct registry key before construction.
+- A plush has sound but no visible model: check `blockstates`, `models/block`, `models/item`, `items`, and texture paths for the same plush id.
+- A plush has no sound: check `sounds.json`, the `.ogg` path, and the `PlushDefinition.sound(...)` id.
+- A plush cannot register: plush entrypoints must run before Butterfly plush bootstrap, and every plush id must be unique.
+- Outlines are not visible on a client-only target: use `ClientOutlines` from client code, or use `ServerOutlines` on the logical server for synced outlines.
+- Cutout or translucent outline masks look wrong in a custom renderer: use `matchModelLayer(true)` on the style and make sure the renderer contributes an outline mask through the correct render layer.
 
-- 1 click
-- 100 clicks
-- 10,000 clicks
-- 1,000,000 clicks
+## Project Layout
 
-### Matchstick
+```text
+src/main/java/moth/butterflyapi
+  bootstrap/       Idempotent setup helpers
+  client/          Client helpers, plush rendering, outline rendering
+  content/         Bundled Butterfly API content
+  itemgroup/       Creative-tab builders and styling
+  math/            Angle, vector, box, scalar, sampling, and motion helpers
+  mod/             ModContext
+  outline/         Public outline style and server API
+  plush/           Plush registration, blocks, items, and block entities
+  registry/        Common registration helpers
 
-`butterfly_api:matchstick` is a small fire-starting item. It can:
-
-- Light campfires, candles, and candle cakes.
-- Place `matchstick_fire` or `matchstick_soul_fire`.
-- Light Nether portals when used on a valid frame.
-- Set living entities on fire.
-
-### Connection Enchantment
-
-`butterfly_api:connection` is a treasure enchantment for enchantable items. It binds to an owner when enchanted or taken from an anvil.
-
-Connected items:
-
-- Can only be picked up or taken by their owner after binding.
-- Are preserved through death up to `ConnectionEnchantmentUtil.MAX_CONNECTION_DEATHS`.
-- Can appear on books from trail ruins archaeology loot.
-
-### Other Content
-
-- `butterfly_api:hi` painting variant.
-- Butterfly API creative tab.
-- Crafting recipes for bundled plushes and the Big Red Button.
-- Extra datapack recipes, including smithing template duplication recipes.
-
-## PROJECT LAYOUT
-
-If you want to dig through the source, the packages are split up like this:
-
-- API entrypoints live in `moth.butterflyapi`.
-- Registry helpers live in `moth.butterflyapi.registry`.
-- Mod context helpers live in `moth.butterflyapi.mod`.
-- Client helpers live in `moth.butterflyapi.client`.
-- Item group helpers live in `moth.butterflyapi.itemgroup`.
-- Math helpers live in `moth.butterflyapi.math`.
-- Plush helpers live in `moth.butterflyapi.plush`.
-- Bundled content lives in `moth.butterflyapi.content`.
+src/main/resources
+  assets/          Models, textures, sounds, shaders, and lang
+  data/            Recipes, loot tables, advancements, tags, enchantments, paintings
+```

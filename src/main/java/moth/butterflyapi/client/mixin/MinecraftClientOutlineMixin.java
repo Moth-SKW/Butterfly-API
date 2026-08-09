@@ -1,6 +1,5 @@
 package moth.butterflyapi.client.mixin;
 
-import moth.butterflyapi.client.outline.OutlineDebug;
 import moth.butterflyapi.client.outline.internal.ClientOutlineManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -21,8 +20,7 @@ public abstract class MinecraftClientOutlineMixin {
             Entity entity,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (!cir.getReturnValueZ()
-                && (OutlineDebug.styleFor(entity) != null || ClientOutlineManager.resolve(entity) != null)) {
+        if (!cir.getReturnValueZ() && ClientOutlineManager.resolve(entity) != null) {
             cir.setReturnValue(true);
         }
     }

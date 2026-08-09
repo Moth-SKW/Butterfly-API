@@ -580,8 +580,6 @@ Butterfly API includes:
 - Butterfly API creative tab
 - Plush recipes, loot tables, tags, and the collect-all-plushes advancement
 
-The old void testing/debug blocks are not part of the current mod.
-
 ## Resource And Data Conventions
 
 Common translation keys:

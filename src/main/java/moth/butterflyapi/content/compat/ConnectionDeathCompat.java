@@ -12,8 +12,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 public final class ConnectionDeathCompat {
-    private static final Map<PlayerEntity, Map<Integer, ItemStack>> PRESERVED_STACKS =
-            new WeakHashMap<>();
+    private static final Map<PlayerEntity, Map<Integer, ItemStack>> PRESERVED_STACKS = new WeakHashMap<>();
 
     private ConnectionDeathCompat() {
     }

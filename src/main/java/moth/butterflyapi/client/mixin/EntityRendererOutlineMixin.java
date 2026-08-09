@@ -1,6 +1,5 @@
 package moth.butterflyapi.client.mixin;
 
-import moth.butterflyapi.client.outline.OutlineDebug;
 import moth.butterflyapi.client.outline.OutlineRenderBridge;
 import moth.butterflyapi.client.outline.internal.ClientOutlineManager;
 import moth.butterflyapi.outline.OutlineStyle;
@@ -24,9 +23,6 @@ public abstract class EntityRendererOutlineMixin {
             CallbackInfo ci
     ) {
         OutlineStyle style = ClientOutlineManager.resolve(entity);
-        if (style == null) {
-            style = OutlineDebug.styleFor(entity);
-        }
         if (style != null) {
             Vec3d camera = MinecraftClient.getInstance().gameRenderer.getCamera().getCameraPos();
             state.outlineColor = OutlineRenderBridge.encodedColor(entity, style, camera);

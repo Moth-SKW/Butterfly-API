@@ -8,8 +8,4 @@ public final class ModEnchantments {
 
     private ModEnchantments() {
     }
-
-    public static void init() {
-        // Enchantments are data-driven dynamic registry entries in 1.21.11.
-    }
 }

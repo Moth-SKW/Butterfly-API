@@ -6,6 +6,7 @@
   "client": [
     "CreativeInventoryScreenMixin",
     "CreativeScreenHandlerAccessor",
+    "DrawContextItemProgressBarMixin",
     "HandledScreenAccessor",
     "HandledScreenMixin"
   ],

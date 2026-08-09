@@ -1,7 +1,9 @@
 package moth.butterflyapi.registry;
 
+import moth.butterflyapi.block.BlockBuilder;
 import moth.butterflyapi.mod.ModContext;
 import net.minecraft.block.Block;
+import net.minecraft.block.AbstractBlock;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.decoration.painting.PaintingVariant;
 import net.minecraft.entity.effect.StatusEffect;
@@ -21,6 +23,7 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.block.entity.BlockEntityType;
 
 import java.util.Objects;
+import java.util.function.Function;
 
 public final class Registrar {
     private final ModContext context;
@@ -41,6 +44,10 @@ public final class Registrar {
 
     public <T extends Block> T block(String path, T block) {
         return block(path, block, registeredBlock -> new BlockItem(registeredBlock, context.itemSettings(path)));
+    }
+
+    public <T extends Block> BlockBuilder<T> blockBuilder(String path, Function<AbstractBlock.Settings, T> factory) {
+        return new BlockBuilder<>(context, path, factory);
     }
 
     public <T extends Block> T block(String path, T block, Item.Settings itemSettings) {

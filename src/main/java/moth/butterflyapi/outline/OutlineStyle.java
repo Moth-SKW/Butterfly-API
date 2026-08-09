@@ -12,13 +12,10 @@ public final class OutlineStyle {
     public static final boolean DEFAULT_BLACK_BORDER = false;
     public static final boolean DEFAULT_VISIBLE_THROUGH_WALLS = true;
     public static final boolean DEFAULT_MATCH_MODEL_LAYER = false;
-    /** Keeps the requested outline width in framebuffer pixels at every distance. */
     public static final boolean DEFAULT_CONSISTENT_THICKNESS = true;
-    /** Fraction of the distance-derived width approached per rendered frame. */
     public static final float DEFAULT_THICKNESS_ADAPTATION_RATE = 1.0F;
     public static final float MIN_THICKNESS_ADAPTATION_RATE = 0.0F;
     public static final float MAX_THICKNESS_ADAPTATION_RATE = 1.0F;
-    /** Distance at which a non-consistent outline is at its requested width. */
     public static final float DEFAULT_THICKNESS_REFERENCE_DISTANCE = 16.0F;
     public static final OutlineStyle DEFAULT = new OutlineStyle(
             DEFAULT_RGB,

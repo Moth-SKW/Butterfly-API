@@ -1,5 +1,6 @@
 package moth.butterflyapi.math;
 
+import net.minecraft.entity.Entity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
@@ -58,6 +59,11 @@ public final class Angles {
         return Vec3d.fromPolar((float) pitchDegrees, (float) yawDegrees);
     }
 
+    public static Vec3d lookDirection(Entity entity) {
+        Objects.requireNonNull(entity, "entity");
+        return direction(entity.getYaw(), entity.getPitch());
+    }
+
     public static Vec3d direction(YawPitch rotation) {
         return Objects.requireNonNull(rotation, "rotation").direction();
     }
@@ -79,5 +85,19 @@ public final class Angles {
 
     public static YawPitch lookAt(Vec3d from, Vec3d to) {
         return yawPitch(Objects.requireNonNull(to, "to").subtract(Objects.requireNonNull(from, "from")));
+    }
+
+    public static YawPitch lookAt(Entity from, Vec3d to) {
+        Objects.requireNonNull(from, "from");
+        return lookAt(new Vec3d(from.getX(), from.getY(), from.getZ()), to);
+    }
+
+    public static YawPitch lookAt(Entity from, Entity to) {
+        Objects.requireNonNull(from, "from");
+        Objects.requireNonNull(to, "to");
+        return lookAt(
+                new Vec3d(from.getX(), from.getY(), from.getZ()),
+                new Vec3d(to.getX(), to.getY(), to.getZ())
+        );
     }
 }

@@ -24,6 +24,61 @@ public final class Motion {
         return entity.getVelocity();
     }
 
+    public static Vec3d lookDirection(Entity entity) {
+        return Angles.lookDirection(entity);
+    }
+
+    public static Vec3d velocityFromLook(Entity entity, double speed) {
+        return lookDirection(entity).multiply(speed);
+    }
+
+    public static Vec3d setVelocityFromLook(Entity entity, double speed) {
+        return setVelocity(entity, velocityFromLook(entity, speed));
+    }
+
+    public static Vec3d addVelocityFromLook(Entity entity, double speed) {
+        return addVelocity(entity, velocityFromLook(entity, speed));
+    }
+
+    public static Vec3d velocityToward(Vec3d from, Vec3d to, double speed) {
+        return Vecs.direction(from, to).multiply(speed);
+    }
+
+    public static Vec3d velocityToward(Entity from, Vec3d to, double speed) {
+        Objects.requireNonNull(from, "from");
+        return velocityToward(position(from), to, speed);
+    }
+
+    public static Vec3d velocityToward(Entity from, Entity to, double speed) {
+        Objects.requireNonNull(to, "to");
+        return velocityToward(from, position(to), speed);
+    }
+
+    public static Vec3d setVelocityToward(Entity entity, Vec3d target, double speed) {
+        Objects.requireNonNull(entity, "entity");
+        return setVelocity(entity, velocityToward(position(entity), Objects.requireNonNull(target, "target"), speed));
+    }
+
+    public static Vec3d setVelocityToward(Entity entity, Entity target, double speed) {
+        Objects.requireNonNull(target, "target");
+        return setVelocityToward(entity, position(target), speed);
+    }
+
+    public static Vec3d addVelocityToward(Entity entity, Vec3d target, double speed) {
+        Objects.requireNonNull(entity, "entity");
+        return addVelocity(entity, velocityToward(position(entity), Objects.requireNonNull(target, "target"), speed));
+    }
+
+    public static Vec3d addVelocityToward(Entity entity, Entity target, double speed) {
+        Objects.requireNonNull(target, "target");
+        return addVelocityToward(entity, position(target), speed);
+    }
+
+    public static Vec3d position(Entity entity) {
+        Objects.requireNonNull(entity, "entity");
+        return new Vec3d(entity.getX(), entity.getY(), entity.getZ());
+    }
+
     public static Vec3d impulse(Entity entity, Vec3d direction, double strength) {
         return impulse(entity, direction, strength, 0.0D);
     }

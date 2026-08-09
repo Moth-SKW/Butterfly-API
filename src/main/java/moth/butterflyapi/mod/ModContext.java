@@ -1,6 +1,7 @@
 package moth.butterflyapi.mod;
 
 import moth.butterflyapi.client.ClientRegistrar;
+import moth.butterflyapi.block.BlockBuilder;
 import moth.butterflyapi.itemgroup.TabBuilder;
 import moth.butterflyapi.itemgroup.Tabs;
 import moth.butterflyapi.plush.PlushDefinition;
@@ -98,28 +99,18 @@ public final class ModContext {
         return Identifier.of(modId, path);
     }
 
-    /**
-     * Returns the registry key that must be attached to a block's settings
-     * before the block constructor runs on 1.21.11.
-     */
     public RegistryKey<Block> blockKey(String path) {
         return RegistryKey.of(RegistryKeys.BLOCK, id(path));
     }
 
-    /** Returns pre-keyed block settings suitable for a 1.21.11 block constructor. */
     public AbstractBlock.Settings blockSettings(String path) {
         return AbstractBlock.Settings.create().registryKey(blockKey(path));
     }
 
-    /**
-     * Returns the registry key that must be attached to an item's settings
-     * before the item constructor runs on 1.21.11.
-     */
     public RegistryKey<Item> itemKey(String path) {
         return RegistryKey.of(RegistryKeys.ITEM, id(path));
     }
 
-    /** Returns pre-keyed item settings suitable for a 1.21.11 item constructor. */
     public Item.Settings itemSettings(String path) {
         return new Item.Settings().registryKey(itemKey(path));
     }
@@ -166,6 +157,10 @@ public final class ModContext {
     public <T extends Block> T block(String path, Function<AbstractBlock.Settings, T> factory) {
         Objects.requireNonNull(factory, "factory");
         return block(path, factory.apply(blockSettings(path)));
+    }
+
+    public <T extends Block> BlockBuilder<T> blockBuilder(String path, Function<AbstractBlock.Settings, T> factory) {
+        return new BlockBuilder<>(this, path, factory);
     }
 
     public <T extends Block> T block(String path, T block, Item.Settings itemSettings) {

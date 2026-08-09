@@ -25,14 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Small compatibility surface for outline renderers.
- *
- * <p>1.21.11 moved outline compositing into the frame graph. Vanilla now
- * consumes {@code EntityRenderState.outlineColor} and renders into its native
- * outline target, so this bridge deliberately uses the same target instead of
- * trying to bind framebuffers or construct legacy RenderLayer instances.</p>
- */
 @Environment(EnvType.CLIENT)
 public final class OutlineRenderBridge {
     private static final Identifier BLOCK_ATLAS_TEXTURE = Identifier.ofVanilla("textures/atlas/blocks.png");
@@ -61,7 +53,6 @@ public final class OutlineRenderBridge {
     private OutlineRenderBridge() {
     }
 
-    /** Kept as an idempotent entry point for existing client bootstrap code. */
     public static void initialize() {
         if (blockMaskLayer == null) {
             blockMaskLayer = createBlockMaskLayer(
@@ -151,22 +142,18 @@ public final class OutlineRenderBridge {
         return currentStyle;
     }
 
-    /** Sets the packed ARGB color expected by the current 1.21.11 outline provider. */
     public static void configure(OutlineVertexConsumerProvider provider, OutlineStyle style) {
         provider.setColor(encodeStyle(style, style.thickness(), false));
     }
 
-    /** Encodes the style metadata carried by the native outline color channel. */
     public static int encodedColor(Entity target, OutlineStyle style, Vec3d camera) {
         return encodeStyle(style, effectiveThickness(target, style, camera), false);
     }
 
-    /** Encodes the style metadata carried by the native outline color channel. */
     public static int encodedColor(BlockEntity target, OutlineStyle style, Vec3d camera) {
         return encodeStyle(style, effectiveThickness(target, style, camera), false);
     }
 
-    /** Adds block-mask-only settings to an already packed outline color. */
     public static int applyBlockMaskSettings(int encodedColor, BlockOutlineSettings settings) {
         int packed = packedStyleBits(encodedColor);
         if ((packed & PACKED_STYLE_MARKER) == 0) {
@@ -234,11 +221,6 @@ public final class OutlineRenderBridge {
         return resolved;
     }
 
-    /**
-     * Resolves a vanilla outline layer for callers that capture a model into
-     * an OutlineVertexConsumerProvider. The provider only accepts outline
-     * layers or layers explicitly marked as affecting outlines.
-     */
     @Nullable
     public static RenderLayer maskLayer(RenderLayer source, OutlineStyle style) {
         return maskLayer(source, style, null);
@@ -268,12 +250,10 @@ public final class OutlineRenderBridge {
         return BLOCK_ATLAS_TEXTURE;
     }
 
-    /** Returns the native outline provider used by the 1.21.11 frame graph. */
     public static OutlineVertexConsumerProvider outlineProvider() {
         return MinecraftClient.getInstance().getBufferBuilders().getOutlineVertexConsumers();
     }
 
-    /** Render layer for custom exposed-face block masks in the native outline target. */
     public static RenderLayer blockMaskLayer(int encodedColor) {
         initialize();
         if ((packedStyleBits(encodedColor) & PACKED_VISIBLE_THROUGH_WALLS) != 0) {

@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "BTB",
+    "DBD",
+    "DBD"
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:prismarine"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "T": {
+      "item": "minecraft:tide_armor_trim_smithing_template"
+    }
+  },
+  "result": {
+    "item": "minecraft:tide_armor_trim_smithing_template",
+    "count": 2
+  }
+}

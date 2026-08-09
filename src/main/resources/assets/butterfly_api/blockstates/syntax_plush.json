@@ -1,0 +1,64 @@
+{
+  "variants": {
+    "facing=north,mode=0,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush"
+    },
+    "facing=north,mode=0,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush"
+    },
+    "facing=north,mode=1,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush"
+    },
+    "facing=north,mode=1,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush"
+    },
+    "facing=east,mode=0,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 90
+    },
+    "facing=east,mode=0,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 90
+    },
+    "facing=east,mode=1,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 90
+    },
+    "facing=east,mode=1,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 90
+    },
+    "facing=south,mode=0,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 180
+    },
+    "facing=south,mode=0,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 180
+    },
+    "facing=south,mode=1,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 180
+    },
+    "facing=south,mode=1,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 180
+    },
+    "facing=west,mode=0,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 270
+    },
+    "facing=west,mode=0,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 270
+    },
+    "facing=west,mode=1,waterlogged=false": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 270
+    },
+    "facing=west,mode=1,waterlogged=true": {
+      "model": "butterfly_api:block/syntax_plush",
+      "y": 270
+    }
+  }
+}

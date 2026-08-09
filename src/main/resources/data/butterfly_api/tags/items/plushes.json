@@ -1,0 +1,12 @@
+{
+  "replace": false,
+  "values": [
+    "butterfly_api:syntax_plush",
+    "butterfly_api:hex_plush",
+    "butterfly_api:hex_maid_plush",
+    "butterfly_api:moth_plush",
+    "butterfly_api:chicken_plush",
+    "butterfly_api:capozi_plush",
+    "butterfly_api:debug_plush"
+  ]
+}

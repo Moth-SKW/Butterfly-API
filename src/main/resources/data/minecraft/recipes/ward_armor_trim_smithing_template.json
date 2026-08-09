@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "BTB",
+    "DBD",
+    "DBD"
+  ],
+  "key": {
+    "B": {
+      "item": "minecraft:cobbled_deepslate"
+    },
+    "D": {
+      "item": "minecraft:diamond"
+    },
+    "T": {
+      "item": "minecraft:ward_armor_trim_smithing_template"
+    }
+  },
+  "result": {
+    "item": "minecraft:ward_armor_trim_smithing_template",
+    "count": 2
+  }
+}

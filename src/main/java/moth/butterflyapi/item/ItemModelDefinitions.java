@@ -91,6 +91,7 @@ public final class ItemModelDefinitions {
             heldContexts.add("firstperson_righthand");
             heldContexts.add("thirdperson_lefthand");
             heldContexts.add("thirdperson_righthand");
+            heldContexts.add("head");
             heldCase.add("when", heldContexts);
             heldCase.add("model", modelObject(heldModel));
 

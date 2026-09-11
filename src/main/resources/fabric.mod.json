@@ -24,6 +24,7 @@
     ]
   },
   "mixins": [
+    "butterfly_api.mixins.json",
     "butterfly_api.client.mixins.json",
     "butterfly_api.outline.client.mixins.json"
   ],

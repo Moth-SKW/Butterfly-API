@@ -14,9 +14,5 @@ void main() {
     if (color.a < 0.1) {
         discard;
     }
-
-    // Vanilla 1.21.11 uses ColorModulator.a here, which prevents custom
-    // outline metadata from surviving the native outline pass. The packed
-    // style is carried in the vertex alpha by OutlineVertexConsumerProvider.
     fragColor = vec4(ColorModulator.rgb * vertexColor.rgb, vertexColor.a);
 }

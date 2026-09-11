@@ -16,6 +16,7 @@ Butterfly API includes helpers for:
 - entity and block-entity outlines
 - client registration
 - math and motion utilities
+- text, font, color, and text-effect helpers
 - one-time bootstrap helpers
 
 It is designed to work alongside normal Minecraft and Fabric systems rather than replace them.

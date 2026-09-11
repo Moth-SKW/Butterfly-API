@@ -7,6 +7,7 @@ import moth.butterflyapi.itemgroup.Tabs;
 import moth.butterflyapi.plush.PlushDefinition;
 import moth.butterflyapi.registry.BlockItemFactory;
 import moth.butterflyapi.registry.Registrar;
+import moth.butterflyapi.text.TextFonts;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.AbstractBlock;
@@ -117,6 +118,10 @@ public final class ModContext {
 
     public PlushDefinition.Builder plush(String path) {
         return PlushDefinition.builder(this, path);
+    }
+
+    public Identifier font(String path) {
+        return TextFonts.register(id(path));
     }
 
     public Registrar registrar() {

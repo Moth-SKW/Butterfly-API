@@ -3,6 +3,7 @@ package moth.butterflyapi.client;
 import moth.butterflyapi.ButterflyApi;
 import moth.butterflyapi.client.outline.OutlineRenderBridge;
 import moth.butterflyapi.client.outline.internal.ClientOutlineBootstrap;
+import moth.butterflyapi.client.text.internal.ButterflyTextClientBootstrap;
 import net.fabricmc.api.ClientModInitializer;
 
 public final class ButterflyApiClient implements ClientModInitializer {
@@ -12,5 +13,6 @@ public final class ButterflyApiClient implements ClientModInitializer {
         OutlineRenderBridge.initialize();
         ClientOutlineBootstrap.initialize();
         PlushClientBootstrap.initialize();
+        ButterflyTextClientBootstrap.initialize();
     }
 }

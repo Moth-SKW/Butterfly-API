@@ -8,7 +8,9 @@
     "CreativeScreenHandlerAccessor",
     "DrawContextItemProgressBarMixin",
     "HandledScreenAccessor",
-    "HandledScreenMixin"
+    "HandledScreenMixin",
+    "PlayerEntityDebugNameMixin",
+    "TextRendererDrawerMixin"
   ],
   "injectors": {
     "defaultRequire": 0

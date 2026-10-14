@@ -1,13 +1,12 @@
 package moth.butterflyapi.item;
 
-import net.minecraft.component.type.AttributeModifierSlot;
-import net.minecraft.component.type.AttributeModifiersComponent;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.entity.attribute.EntityAttributes;
-import net.minecraft.item.Item;
-import net.minecraft.util.Identifier;
-
 import java.util.Objects;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.EquipmentSlotGroup;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 public final class ItemUtils {
     public static final double PLAYER_BASE_ATTACK_SPEED = 4.0D;
@@ -19,51 +18,51 @@ public final class ItemUtils {
         return displayedAttackSpeed - PLAYER_BASE_ATTACK_SPEED;
     }
 
-    public static Item.Settings displayedAttackSpeed(Item.Settings settings, Identifier modifierId, double displayedAttackSpeed) {
+    public static Item.Properties displayedAttackSpeed(Item.Properties settings, Identifier modifierId, double displayedAttackSpeed) {
         Objects.requireNonNull(settings, "settings");
-        return settings.attributeModifiers(attackSpeedAttributes(modifierId, displayedAttackSpeed));
+        return settings.attributes(attackSpeedAttributes(modifierId, displayedAttackSpeed));
     }
 
-    public static Item.Settings combatAttributes(Item.Settings settings, Identifier modifierId, double attackDamage, double displayedAttackSpeed) {
+    public static Item.Properties combatAttributes(Item.Properties settings, Identifier modifierId, double attackDamage, double displayedAttackSpeed) {
         Objects.requireNonNull(settings, "settings");
-        return settings.attributeModifiers(combatAttributes(modifierId, attackDamage, displayedAttackSpeed));
+        return settings.attributes(combatAttributes(modifierId, attackDamage, displayedAttackSpeed));
     }
 
-    public static AttributeModifiersComponent attackSpeedAttributes(Identifier modifierId, double displayedAttackSpeed) {
+    public static ItemAttributeModifiers attackSpeedAttributes(Identifier modifierId, double displayedAttackSpeed) {
         Identifier checkedId = Objects.requireNonNull(modifierId, "modifierId");
-        return AttributeModifiersComponent.builder()
+        return ItemAttributeModifiers.builder()
                 .add(
-                        EntityAttributes.ATTACK_SPEED,
-                        new EntityAttributeModifier(
-                                checkedId.withSuffixedPath("_attack_speed"),
+                        Attributes.ATTACK_SPEED,
+                        new AttributeModifier(
+                                checkedId.withSuffix("_attack_speed"),
                                 attackSpeedModifier(displayedAttackSpeed),
-                                EntityAttributeModifier.Operation.ADD_VALUE
+                                AttributeModifier.Operation.ADD_VALUE
                         ),
-                        AttributeModifierSlot.MAINHAND
+                        EquipmentSlotGroup.MAINHAND
                 )
                 .build();
     }
 
-    public static AttributeModifiersComponent combatAttributes(Identifier modifierId, double attackDamage, double displayedAttackSpeed) {
+    public static ItemAttributeModifiers combatAttributes(Identifier modifierId, double attackDamage, double displayedAttackSpeed) {
         Identifier checkedId = Objects.requireNonNull(modifierId, "modifierId");
-        return AttributeModifiersComponent.builder()
+        return ItemAttributeModifiers.builder()
                 .add(
-                        EntityAttributes.ATTACK_DAMAGE,
-                        new EntityAttributeModifier(
-                                checkedId.withSuffixedPath("_attack_damage"),
+                        Attributes.ATTACK_DAMAGE,
+                        new AttributeModifier(
+                                checkedId.withSuffix("_attack_damage"),
                                 attackDamage,
-                                EntityAttributeModifier.Operation.ADD_VALUE
+                                AttributeModifier.Operation.ADD_VALUE
                         ),
-                        AttributeModifierSlot.MAINHAND
+                        EquipmentSlotGroup.MAINHAND
                 )
                 .add(
-                        EntityAttributes.ATTACK_SPEED,
-                        new EntityAttributeModifier(
-                                checkedId.withSuffixedPath("_attack_speed"),
+                        Attributes.ATTACK_SPEED,
+                        new AttributeModifier(
+                                checkedId.withSuffix("_attack_speed"),
                                 attackSpeedModifier(displayedAttackSpeed),
-                                EntityAttributeModifier.Operation.ADD_VALUE
+                                AttributeModifier.Operation.ADD_VALUE
                         ),
-                        AttributeModifierSlot.MAINHAND
+                        EquipmentSlotGroup.MAINHAND
                 )
                 .build();
     }

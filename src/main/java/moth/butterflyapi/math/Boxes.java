@@ -1,23 +1,22 @@
 package moth.butterflyapi.math;
 
-import net.minecraft.entity.Entity;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-
 import java.util.Objects;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 
 public final class Boxes {
     private Boxes() {
     }
 
-    public static Box around(Vec3d center, double radius) {
+    public static AABB around(Vec3 center, double radius) {
         return around(center, radius, radius, radius);
     }
 
-    public static Box around(Vec3d center, double xRadius, double yRadius, double zRadius) {
+    public static AABB around(Vec3 center, double xRadius, double yRadius, double zRadius) {
         Objects.requireNonNull(center, "center");
-        return new Box(
+        return new AABB(
                 center.x - xRadius,
                 center.y - yRadius,
                 center.z - zRadius,
@@ -27,49 +26,49 @@ public final class Boxes {
         );
     }
 
-    public static Box sized(Vec3d center, double width, double height, double depth) {
+    public static AABB sized(Vec3 center, double width, double height, double depth) {
         return around(center, width * 0.5D, height * 0.5D, depth * 0.5D);
     }
 
-    public static Box between(Vec3d start, Vec3d end) {
+    public static AABB between(Vec3 start, Vec3 end) {
         return between(start, end, 0.0D);
     }
 
-    public static Box between(Vec3d start, Vec3d end, double padding) {
+    public static AABB between(Vec3 start, Vec3 end, double padding) {
         Objects.requireNonNull(start, "start");
         Objects.requireNonNull(end, "end");
-        return new Box(
+        return new AABB(
                 Math.min(start.x, end.x),
                 Math.min(start.y, end.y),
                 Math.min(start.z, end.z),
                 Math.max(start.x, end.x),
                 Math.max(start.y, end.y),
                 Math.max(start.z, end.z)
-        ).expand(padding);
+        ).inflate(padding);
     }
 
-    public static Box at(BlockPos pos) {
-        return new Box(Objects.requireNonNull(pos, "pos"));
+    public static AABB at(BlockPos pos) {
+        return new AABB(Objects.requireNonNull(pos, "pos"));
     }
 
-    public static Box at(BlockPos pos, double padding) {
-        return at(pos).expand(padding);
+    public static AABB at(BlockPos pos, double padding) {
+        return at(pos).inflate(padding);
     }
 
-    public static Box of(Entity entity) {
+    public static AABB of(Entity entity) {
         return Objects.requireNonNull(entity, "entity").getBoundingBox();
     }
 
-    public static Box of(Entity entity, double padding) {
-        return of(entity).expand(padding);
+    public static AABB of(Entity entity, double padding) {
+        return of(entity).inflate(padding);
     }
 
-    public static Vec3d center(Box box) {
+    public static Vec3 center(AABB box) {
         return Objects.requireNonNull(box, "box").getCenter();
     }
 
-    public static Vec3d size(Box box) {
+    public static Vec3 size(AABB box) {
         Objects.requireNonNull(box, "box");
-        return new Vec3d(box.maxX - box.minX, box.maxY - box.minY, box.maxZ - box.minZ);
+        return new Vec3(box.maxX - box.minX, box.maxY - box.minY, box.maxZ - box.minZ);
     }
 }

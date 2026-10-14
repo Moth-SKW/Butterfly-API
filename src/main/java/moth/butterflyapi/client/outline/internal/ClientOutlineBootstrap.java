@@ -21,7 +21,8 @@ public final class ClientOutlineBootstrap {
     public static void initialize() {
         BOOTSTRAP.run(
                 ClientOutlineBootstrap::registerReceivers,
-                ClientOutlineBootstrap::registerLifecycleHooks
+                ClientOutlineBootstrap::registerLifecycleHooks,
+                BlockOutlineGeometryRenderer::initialize
         );
     }
 
@@ -42,14 +43,21 @@ public final class ClientOutlineBootstrap {
         ClientBlockEntityEvents.BLOCK_ENTITY_LOAD.register(ClientOutlineManager::onBlockEntityLoad);
         ClientBlockEntityEvents.BLOCK_ENTITY_UNLOAD.register(ClientOutlineManager::onBlockEntityUnload);
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-                ClientOutlineManager.onJoin(client.world));
+                ClientOutlineManager.onJoin(client.level));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            if (client.isOnThread()) {
+            if (client.isSameThread()) {
                 ClientOutlineManager.onDisconnect();
+                ClientBlockOutlineManager.onDisconnect();
                 return;
             }
-            client.execute(ClientOutlineManager::onDisconnect);
+            client.execute(() -> {
+                ClientOutlineManager.onDisconnect();
+                ClientBlockOutlineManager.onDisconnect();
+            });
         });
-        ClientTickEvents.END_CLIENT_TICK.register(ClientOutlineManager::onEndClientTick);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            ClientOutlineManager.onEndClientTick(client);
+            ClientBlockOutlineManager.onEndClientTick(client);
+        });
     }
 }

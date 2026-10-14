@@ -4,89 +4,108 @@ import moth.butterflyapi.outline.BlockOutlineSettings;
 import moth.butterflyapi.outline.OutlineStyle;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.OutlineVertexConsumerProvider;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.RenderSetup;
-import net.minecraft.client.render.OutputTarget;
-import net.minecraft.client.render.VertexFormats;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+//? if >=1.21.11 && <26.2 {
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.OutlineBufferSource;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.rendertype.OutputTarget;
+import net.minecraft.client.renderer.rendertype.RenderSetup;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.resources.Identifier;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.platform.DepthTestFunction;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexFormat;
+//?}
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
+import it.unimi.dsi.fastutil.longs.Long2FloatMap;
+import it.unimi.dsi.fastutil.longs.Long2FloatOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2FloatMap;
+import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
 public final class OutlineRenderBridge {
-    private static final Identifier BLOCK_ATLAS_TEXTURE = Identifier.ofVanilla("textures/atlas/blocks.png");
+//? if <26.2 {
     private static final int PACKED_STYLE_MARKER = 1 << 11;
     private static final int PACKED_VISIBLE_THROUGH_WALLS = 1 << 10;
     private static final int PACKED_PRESERVE_INSIDE = 1 << 9;
     private static final int PACKED_BLACK_BORDER = 1 << 8;
     private static final int PACKED_PLACEMENT_SHIFT = 6;
     private static final int PACKED_THICKNESS_MASK = 0x3F;
-    private static final Map<java.util.UUID, Float> ENTITY_THICKNESSES = new HashMap<>();
-    private static final Map<Long, Float> BLOCK_ENTITY_THICKNESSES = new HashMap<>();
+//?}
+//? if >=1.21.11 && <26.2 {
+    private static final Identifier BLOCK_ATLAS_TEXTURE = Identifier.withDefaultNamespace("textures/atlas/blocks.png");
+//?}
+    private static final Object2FloatMap<java.util.UUID> ENTITY_THICKNESSES = new Object2FloatOpenHashMap<>();
+    private static final Long2FloatMap BLOCK_ENTITY_THICKNESSES = new Long2FloatOpenHashMap();
 
     @Nullable
     private static OutlineStyle currentStyle;
+//? if >=1.21.11 && <26.2 {
     @Nullable
     private static BlockOutlineSettings currentBlockSettings;
+//?}
     private static boolean entityCaptureSession;
     private static boolean maskOnlyCapture;
     private static long outlineFrameId;
     private static long maskPassId;
+//? if >=1.21.11 && <26.2 {
     @Nullable
-    private static RenderLayer blockMaskLayer;
+    private static RenderType blockMaskLayer;
     @Nullable
-    private static RenderLayer blockMaskThroughWallsLayer;
+    private static RenderType blockMaskThroughWallsLayer;
+//?}
 
     private OutlineRenderBridge() {
     }
 
     public static void initialize() {
+//? if >=1.21.11 && <26.2 {
         if (blockMaskLayer == null) {
             blockMaskLayer = createBlockMaskLayer(
                     "butterfly_api_outline_block_mask",
-                    Identifier.of("butterfly_api", "pipeline/outline_block_mask"),
+                    Identifier.fromNamespaceAndPath("butterfly_api", "pipeline/outline_block_mask"),
                     DepthTestFunction.LEQUAL_DEPTH_TEST
             );
             blockMaskThroughWallsLayer = createBlockMaskLayer(
                     "butterfly_api_outline_block_mask_through_walls",
-                    Identifier.of("butterfly_api", "pipeline/outline_block_mask_through_walls"),
+                    Identifier.fromNamespaceAndPath("butterfly_api", "pipeline/outline_block_mask_through_walls"),
                     DepthTestFunction.NO_DEPTH_TEST
             );
         }
+//?}
     }
 
-    private static RenderLayer createBlockMaskLayer(String name, Identifier location, DepthTestFunction depthTest) {
-        RenderPipeline pipeline = RenderPipeline.builder(RenderPipelines.POSITION_COLOR_SNIPPET)
+//? if >=1.21.11 && <26.2 {
+    private static RenderType createBlockMaskLayer(String name, Identifier location, DepthTestFunction depthTest) {
+        RenderPipeline pipeline = RenderPipeline.builder(RenderPipelines.DEBUG_FILLED_SNIPPET)
                 .withLocation(location)
-                .withFragmentShader(Identifier.of("butterfly_api", "core/outline_mask"))
+                .withFragmentShader(Identifier.fromNamespaceAndPath("butterfly_api", "core/outline_mask"))
                 .withDepthTestFunction(depthTest)
                 .withDepthWrite(false)
-                .withVertexFormat(VertexFormats.POSITION_COLOR, VertexFormat.DrawMode.QUADS)
+                .withVertexFormat(DefaultVertexFormat.POSITION_COLOR, VertexFormat.Mode.QUADS)
                 .build();
         RenderSetup setup = RenderSetup.builder(pipeline)
-                .outputTarget(OutputTarget.OUTLINE_TARGET)
-                .outlineMode(RenderSetup.OutlineMode.IS_OUTLINE)
-                .expectedBufferSize(256)
-                .build();
+                .setOutputTarget(OutputTarget.OUTLINE_TARGET)
+                .setOutline(RenderSetup.OutlineProperty.IS_OUTLINE)
+                .bufferSize(256)
+                .createRenderSetup();
         return moth.butterflyapi.client.mixin.RenderLayerAccessor.butterflyApi$of(name, setup);
     }
+//?}
 
     public static void beginFrame() {
         outlineFrameId++;
+//? if >=1.21.11 && <26.2 {
         currentBlockSettings = null;
+//?}
     }
 
     public static long frameId() {
@@ -112,7 +131,9 @@ public final class OutlineRenderBridge {
 
     public static void endEntityCapture() {
         currentStyle = null;
+//? if >=1.21.11 && <26.2 {
         currentBlockSettings = null;
+//?}
         entityCaptureSession = false;
         maskOnlyCapture = false;
     }
@@ -129,6 +150,7 @@ public final class OutlineRenderBridge {
         return maskPassId;
     }
 
+//? if >=1.21.11 && <26.2 {
     public static void beginBlockMask(BlockOutlineSettings settings) {
         currentBlockSettings = Objects.requireNonNull(settings, "settings");
     }
@@ -136,24 +158,50 @@ public final class OutlineRenderBridge {
     public static void endBlockMask() {
         currentBlockSettings = null;
     }
+//?}
 
     @Nullable
     public static OutlineStyle currentStyle() {
         return currentStyle;
     }
 
-    public static void configure(OutlineVertexConsumerProvider provider, OutlineStyle style) {
+//? if >=1.21.11 && <26.2 {
+    public static void configure(OutlineBufferSource provider, OutlineStyle style) {
         provider.setColor(encodeStyle(style, style.thickness(), false));
     }
+//?}
 
-    public static int encodedColor(Entity target, OutlineStyle style, Vec3d camera) {
+    public static int encodedColor(Entity target, OutlineStyle style, Vec3 camera) {
+//? if >=1.21.11 && <26.2 {
         return encodeStyle(style, effectiveThickness(target, style, camera), false);
+//?} else {
+/*
+        return 0xFF000000 | (style.rgb() & 0xFFFFFF);
+*///?}
     }
 
-    public static int encodedColor(BlockEntity target, OutlineStyle style, Vec3d camera) {
+    public static int encodedColor(BlockEntity target, OutlineStyle style, Vec3 camera) {
+//? if >=1.21.11 && <26.2 {
         return encodeStyle(style, effectiveThickness(target, style, camera), false);
+//?} else {
+/*
+        return 0xFF000000 | (style.rgb() & 0xFFFFFF);
+*///?}
     }
 
+//? if <1.21.11 {
+/*
+    // The legacy post chain uses alpha 254 for entities and 253 for block entities.
+    public static int encodedLegacyEntityColor(Entity target, OutlineStyle style, Vec3 camera) {
+        return encodeStyle(style, effectiveThickness(target, style, camera), false, 0xFE);
+    }
+
+    public static int encodedLegacyBlockColor(BlockEntity target, OutlineStyle style, Vec3 camera) {
+        return encodeStyle(style, effectiveThickness(target, style, camera), false, 0xFD);
+    }
+*///?}
+
+//? if >=1.21.11 && <26.2 {
     public static int applyBlockMaskSettings(int encodedColor, BlockOutlineSettings settings) {
         int packed = packedStyleBits(encodedColor);
         if ((packed & PACKED_STYLE_MARKER) == 0) {
@@ -164,23 +212,21 @@ public final class OutlineRenderBridge {
                 : packed & ~PACKED_PRESERVE_INSIDE;
         return withPackedStyleBits(encodedColor, packed);
     }
+//?}
 
-    public static float effectiveThickness(Entity entity, OutlineStyle style, Vec3d camera) {
-        return effectiveThickness(
-                entity.getUuid(),
-                style,
-                new Vec3d(entity.getX(), entity.getY(), entity.getZ()).squaredDistanceTo(camera),
-                ENTITY_THICKNESSES
-        );
+    public static float effectiveThickness(Entity entity, OutlineStyle style, Vec3 camera) {
+        double x = entity.getX() - camera.x;
+        double y = entity.getY() - camera.y;
+        double z = entity.getZ() - camera.z;
+        return effectiveThickness(entity.getUUID(), style, x * x + y * y + z * z);
     }
 
-    public static float effectiveThickness(BlockEntity blockEntity, OutlineStyle style, Vec3d camera) {
-        return effectiveThickness(
-                blockEntity.getPos().asLong(),
-                style,
-                blockEntity.getPos().getSquaredDistance(camera.x, camera.y, camera.z),
-                BLOCK_ENTITY_THICKNESSES
-        );
+    public static float effectiveThickness(BlockEntity blockEntity, OutlineStyle style, Vec3 camera) {
+        long position = blockEntity.getBlockPos().asLong();
+        double x = BlockPos.getX(position) - camera.x;
+        double y = BlockPos.getY(position) - camera.y;
+        double z = BlockPos.getZ(position) - camera.z;
+        return effectiveThickness(position, style, x * x + y * y + z * z);
     }
 
     public static void clearAdaptiveThickness() {
@@ -189,46 +235,60 @@ public final class OutlineRenderBridge {
     }
 
     public static void clearAdaptiveThickness(Entity entity) {
-        ENTITY_THICKNESSES.remove(entity.getUuid());
+        ENTITY_THICKNESSES.removeFloat(entity.getUUID());
     }
 
     public static void clearAdaptiveThickness(BlockEntity blockEntity) {
-        BLOCK_ENTITY_THICKNESSES.remove(blockEntity.getPos().asLong());
+        BLOCK_ENTITY_THICKNESSES.remove(blockEntity.getBlockPos().asLong());
     }
 
-    private static <K> float effectiveThickness(
-            K key,
-            OutlineStyle style,
-            double distanceSquared,
-            Map<K, Float> previousValues
-    ) {
+    private static float effectiveThickness(java.util.UUID key, OutlineStyle style, double distanceSquared) {
         if (style.consistentThickness()) {
-            previousValues.remove(key);
+            ENTITY_THICKNESSES.removeFloat(key);
             return style.thickness();
         }
 
-        double distance = Math.sqrt(Math.max(0.0, distanceSquared));
-        float target = (float) (style.thickness()
-                * Math.min(1.0, OutlineStyle.DEFAULT_THICKNESS_REFERENCE_DISTANCE / Math.max(1.0, distance)));
-        target = Math.max(0.25F, target);
-
-        Float previous = previousValues.get(key);
-        if (previous == null) {
+        float target = adaptiveTarget(style, distanceSquared);
+        float previous = ENTITY_THICKNESSES.getFloat(key);
+        if (!ENTITY_THICKNESSES.containsKey(key)) {
             previous = target;
         }
         float resolved = previous + (target - previous) * style.thicknessAdaptationRate();
-        previousValues.put(key, resolved);
+        ENTITY_THICKNESSES.put(key, resolved);
         return resolved;
     }
 
+    private static float effectiveThickness(long key, OutlineStyle style, double distanceSquared) {
+        if (style.consistentThickness()) {
+            BLOCK_ENTITY_THICKNESSES.remove(key);
+            return style.thickness();
+        }
+
+        float target = adaptiveTarget(style, distanceSquared);
+        float previous = BLOCK_ENTITY_THICKNESSES.get(key);
+        if (!BLOCK_ENTITY_THICKNESSES.containsKey(key)) {
+            previous = target;
+        }
+        float resolved = previous + (target - previous) * style.thicknessAdaptationRate();
+        BLOCK_ENTITY_THICKNESSES.put(key, resolved);
+        return resolved;
+    }
+
+    private static float adaptiveTarget(OutlineStyle style, double distanceSquared) {
+        double distance = Math.sqrt(Math.max(0.0D, distanceSquared));
+        return Math.max(0.25F, (float) (style.thickness()
+                * Math.min(1.0D, OutlineStyle.DEFAULT_THICKNESS_REFERENCE_DISTANCE / Math.max(1.0D, distance))));
+    }
+
+//? if >=1.21.11 && <26.2 {
     @Nullable
-    public static RenderLayer maskLayer(RenderLayer source, OutlineStyle style) {
+    public static RenderType maskLayer(RenderType source, OutlineStyle style) {
         return maskLayer(source, style, null);
     }
 
     @Nullable
-    public static RenderLayer maskLayer(
-            RenderLayer source,
+    public static RenderType maskLayer(
+            RenderType source,
             OutlineStyle style,
             @Nullable Identifier fallbackTexture
     ) {
@@ -236,33 +296,39 @@ public final class OutlineRenderBridge {
             return source;
         }
         if (style.matchModelLayer()) {
-            if (source.getAffectedOutline().isPresent()) {
-                return source.getAffectedOutline().get();
+            if (source.outline().isPresent()) {
+                return source.outline().get();
             }
         }
         Identifier texture = fallbackTexture != null
                 ? fallbackTexture
                 : BLOCK_ATLAS_TEXTURE;
-        return RenderLayers.outlineNoCull(texture);
+        return RenderTypes.outline(texture);
     }
 
     public static Identifier blockAtlasTexture() {
         return BLOCK_ATLAS_TEXTURE;
     }
 
-    public static OutlineVertexConsumerProvider outlineProvider() {
-        return MinecraftClient.getInstance().getBufferBuilders().getOutlineVertexConsumers();
+    public static OutlineBufferSource outlineProvider() {
+        return Minecraft.getInstance().renderBuffers().outlineBufferSource();
     }
 
-    public static RenderLayer blockMaskLayer(int encodedColor) {
+    public static RenderType blockMaskLayer(int encodedColor) {
         initialize();
         if ((packedStyleBits(encodedColor) & PACKED_VISIBLE_THROUGH_WALLS) != 0) {
             return Objects.requireNonNull(blockMaskThroughWallsLayer, "through-walls block mask layer");
         }
         return Objects.requireNonNull(blockMaskLayer, "block mask layer");
     }
+//?}
 
+//? if <26.2 {
     private static int encodeStyle(OutlineStyle style, float thickness, boolean preserveInsideInterior) {
+        return encodeStyle(style, thickness, preserveInsideInterior, 0xFE);
+    }
+
+    private static int encodeStyle(OutlineStyle style, float thickness, boolean preserveInsideInterior, int alpha) {
         int resolvedThickness = Math.round(thickness);
         resolvedThickness = Math.max(OutlineStyle.MIN_THICKNESS, Math.min(OutlineStyle.MAX_THICKNESS, resolvedThickness));
         int packed = PACKED_STYLE_MARKER
@@ -271,7 +337,7 @@ public final class OutlineRenderBridge {
                 | (style.blackBorder() ? PACKED_BLACK_BORDER : 0)
                 | (style.visibleThroughWalls() ? PACKED_VISIBLE_THROUGH_WALLS : 0)
                 | (preserveInsideInterior ? PACKED_PRESERVE_INSIDE : 0);
-        return withPackedStyleBits(0xFE000000 | (style.rgb() & 0x00FFFFFF), packed);
+        return withPackedStyleBits((alpha << 24) | (style.rgb() & 0x00FFFFFF), packed);
     }
 
     private static int packedStyleBits(int color) {
@@ -287,4 +353,5 @@ public final class OutlineRenderBridge {
         int blue = packed & 0x0F;
         return (color & 0xFFF0F0F0) | (red << 16) | (green << 8) | blue;
     }
+//?}
 }

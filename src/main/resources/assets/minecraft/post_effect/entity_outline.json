@@ -1,129 +1,116 @@
 {
   "targets": {
-    "seed": {},
-    "field_a": {},
-    "field_b": {}
+    "entity_seed": {},
+    "entity_field_a": {},
+    "entity_field_b": {},
+    "block_seed": {},
+    "block_field_a": {},
+    "block_field_b": {}
   },
   "passes": [
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_seed",
-      "inputs": [
-        {
-          "sampler_name": "In",
-          "target": "minecraft:entity_outline"
-        }
-      ],
-      "output": "seed"
+      "inputs": [{ "sampler_name": "In", "target": "minecraft:entity_outline" }],
+      "output": "entity_seed"
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_jump",
-      "inputs": [
-        {
-          "sampler_name": "In",
-          "target": "seed"
-        }
-      ],
-      "output": "field_a",
-      "uniforms": {
-        "JumpConfig": [
-          { "name": "StepSize", "type": "float", "value": 32.0 }
-        ]
-      }
+      "inputs": [{ "sampler_name": "In", "target": "entity_seed" }],
+      "output": "entity_field_a",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 32.0 }] }
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_jump",
-      "inputs": [
-        {
-          "sampler_name": "In",
-          "target": "field_a"
-        }
-      ],
-      "output": "field_b",
-      "uniforms": {
-        "JumpConfig": [
-          { "name": "StepSize", "type": "float", "value": 16.0 }
-        ]
-      }
+      "inputs": [{ "sampler_name": "In", "target": "entity_field_a" }],
+      "output": "entity_field_b",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 16.0 }] }
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_jump",
-      "inputs": [
-        {
-          "sampler_name": "In",
-          "target": "field_b"
-        }
-      ],
-      "output": "field_a",
-      "uniforms": {
-        "JumpConfig": [
-          { "name": "StepSize", "type": "float", "value": 8.0 }
-        ]
-      }
+      "inputs": [{ "sampler_name": "In", "target": "entity_field_b" }],
+      "output": "entity_field_a",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 8.0 }] }
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_jump",
-      "inputs": [
-        {
-          "sampler_name": "In",
-          "target": "field_a"
-        }
-      ],
-      "output": "field_b",
-      "uniforms": {
-        "JumpConfig": [
-          { "name": "StepSize", "type": "float", "value": 4.0 }
-        ]
-      }
+      "inputs": [{ "sampler_name": "In", "target": "entity_field_a" }],
+      "output": "entity_field_b",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 4.0 }] }
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_jump",
-      "inputs": [
-        {
-          "sampler_name": "In",
-          "target": "field_b"
-        }
-      ],
-      "output": "field_a",
-      "uniforms": {
-        "JumpConfig": [
-          { "name": "StepSize", "type": "float", "value": 2.0 }
-        ]
-      }
+      "inputs": [{ "sampler_name": "In", "target": "entity_field_b" }],
+      "output": "entity_field_a",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 2.0 }] }
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_jump",
-      "inputs": [
-        {
-          "sampler_name": "In",
-          "target": "field_a"
-        }
-      ],
-      "output": "field_b",
-      "uniforms": {
-        "JumpConfig": [
-          { "name": "StepSize", "type": "float", "value": 1.0 }
-        ]
-      }
+      "inputs": [{ "sampler_name": "In", "target": "entity_field_a" }],
+      "output": "entity_field_b",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 1.0 }] }
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "butterfly_api:post/outline_seed_block",
+      "inputs": [{ "sampler_name": "In", "target": "minecraft:entity_outline" }],
+      "output": "block_seed"
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "butterfly_api:post/outline_jump",
+      "inputs": [{ "sampler_name": "In", "target": "block_seed" }],
+      "output": "block_field_a",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 32.0 }] }
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "butterfly_api:post/outline_jump",
+      "inputs": [{ "sampler_name": "In", "target": "block_field_a" }],
+      "output": "block_field_b",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 16.0 }] }
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "butterfly_api:post/outline_jump",
+      "inputs": [{ "sampler_name": "In", "target": "block_field_b" }],
+      "output": "block_field_a",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 8.0 }] }
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "butterfly_api:post/outline_jump",
+      "inputs": [{ "sampler_name": "In", "target": "block_field_a" }],
+      "output": "block_field_b",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 4.0 }] }
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "butterfly_api:post/outline_jump",
+      "inputs": [{ "sampler_name": "In", "target": "block_field_b" }],
+      "output": "block_field_a",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 2.0 }] }
+    },
+    {
+      "vertex_shader": "minecraft:core/screenquad",
+      "fragment_shader": "butterfly_api:post/outline_jump",
+      "inputs": [{ "sampler_name": "In", "target": "block_field_a" }],
+      "output": "block_field_b",
+      "uniforms": { "JumpConfig": [{ "name": "StepSize", "type": "float", "value": 1.0 }] }
     },
     {
       "vertex_shader": "minecraft:core/screenquad",
       "fragment_shader": "butterfly_api:post/outline_apply",
       "inputs": [
-        {
-          "sampler_name": "Field",
-          "target": "field_b"
-        },
-        {
-          "sampler_name": "Mask",
-          "target": "minecraft:entity_outline"
-        }
+        { "sampler_name": "EntityField", "target": "entity_field_b" },
+        { "sampler_name": "BlockField", "target": "block_field_b" },
+        { "sampler_name": "Mask", "target": "minecraft:entity_outline" }
       ],
       "output": "minecraft:entity_outline"
     }

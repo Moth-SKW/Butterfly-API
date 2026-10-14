@@ -1,4 +1,5 @@
 #version 330
+${shader_preamble}
 
 layout(std140) uniform SamplerInfo {
     vec2 OutSize;
@@ -7,8 +8,8 @@ layout(std140) uniform SamplerInfo {
 
 uniform sampler2D InSampler;
 
-in vec2 texCoord;
-out vec4 fragColor;
+${shader_post_input} vec2 texCoord;
+${shader_output} vec4 fragColor;
 
 bool inBounds(ivec2 pixel) {
     ivec2 size = ivec2(InSize);
@@ -21,21 +22,13 @@ int packedStyleBits(vec4 mask) {
     return ((bytes.r & 15) << 8) | ((bytes.g & 15) << 4) | (bytes.b & 15);
 }
 
-bool butterflyMask(vec4 mask) {
-    int alpha = int(round(mask.a * 255.0));
-    return alpha == 254 && (packedStyleBits(mask) & 2048) != 0;
-}
-
-bool vanillaMask(vec4 mask) {
-    return int(round(mask.a * 255.0)) == 255;
-}
-
 bool filled(ivec2 pixel) {
     if (!inBounds(pixel)) {
         return false;
     }
     vec4 mask = texelFetch(InSampler, pixel, 0);
-    return butterflyMask(mask) || vanillaMask(mask);
+    int alpha = int(round(mask.a * 255.0));
+    return alpha > 127 && alpha != 253;
 }
 
 vec4 encodeCoordinate(ivec2 pixel) {

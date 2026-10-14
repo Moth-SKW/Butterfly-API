@@ -1,8 +1,7 @@
 package moth.butterflyapi.plush;
 
 import moth.butterflyapi.mod.ModContext;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.resources.Identifier;
 import java.util.Objects;
 import java.util.function.Consumer;
 

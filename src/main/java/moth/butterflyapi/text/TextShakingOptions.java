@@ -14,11 +14,11 @@ public record TextShakingOptions(
     );
 
     public TextShakingOptions {
-        if (strength < 0.0F) {
-            throw new IllegalArgumentException("strength must be >= 0");
+        if (!Float.isFinite(strength) || strength < 0.0F) {
+            throw new IllegalArgumentException("strength must be finite and >= 0");
         }
-        if (speed <= 0.0F) {
-            throw new IllegalArgumentException("speed must be > 0");
+        if (!Float.isFinite(speed) || speed <= 0.0F) {
+            throw new IllegalArgumentException("speed must be finite and > 0");
         }
         profile = profile == null ? ShakyTextProfile.JITTER : profile;
     }

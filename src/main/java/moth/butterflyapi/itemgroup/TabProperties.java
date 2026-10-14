@@ -1,8 +1,5 @@
 package moth.butterflyapi.itemgroup;
 
-import net.minecraft.item.ItemGroup;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashSet;
@@ -11,34 +8,44 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.CreativeModeTab;
 
 public final class TabProperties {
-    private static final Map<RegistryKey<ItemGroup>, Definition> DEFINITIONS = new ConcurrentHashMap<>();
+    private static final Map<ResourceKey<CreativeModeTab>, Definition> DEFINITIONS = new ConcurrentHashMap<>();
 
     private TabProperties() {
     }
 
-    static void register(RegistryKey<ItemGroup> group, Definition definition) {
-        RegistryKey<ItemGroup> checkedGroup = Objects.requireNonNull(group, "group");
+    static void register(ResourceKey<CreativeModeTab> group, Definition definition) {
+        ResourceKey<CreativeModeTab> checkedGroup = Objects.requireNonNull(group, "group");
         Definition checkedDefinition = Objects.requireNonNull(definition, "definition");
         Definition previous = DEFINITIONS.putIfAbsent(checkedGroup, checkedDefinition);
         if (previous != null) {
-            throw new IllegalStateException("Creative-tab properties were already registered for " + group.getValue());
+            throw new IllegalStateException("Creative-tab properties were already registered for " + group.
+//? if <1.21.11 {
+/*
+                    location()
+*///?} else {
+                    identifier()
+//?}
+            );
         }
     }
 
     @Nullable
-    public static Definition get(RegistryKey<ItemGroup> group) {
+    public static Definition get(ResourceKey<CreativeModeTab> group) {
         return DEFINITIONS.get(Objects.requireNonNull(group, "group"));
     }
 
     @Nullable
-    public static Identifier backgroundTexture(RegistryKey<ItemGroup> group) {
+    public static Identifier backgroundTexture(ResourceKey<CreativeModeTab> group) {
         Definition definition = get(group);
         return definition == null ? null : definition.backgroundTexture();
     }
 
-    public static boolean isSearchTab(RegistryKey<ItemGroup> group) {
+    public static boolean isSearchTab(ResourceKey<CreativeModeTab> group) {
         return get(group) != null;
     }
 

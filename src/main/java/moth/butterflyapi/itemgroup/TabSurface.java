@@ -1,9 +1,9 @@
 package moth.butterflyapi.itemgroup;
 
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import net.minecraft.resources.Identifier;
 
 public final class TabSurface {
     @Nullable

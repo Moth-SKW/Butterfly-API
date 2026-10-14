@@ -1,8 +1,7 @@
 package moth.butterflyapi.text;
 
 import moth.butterflyapi.ButterflyApi;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.resources.Identifier;
 import java.util.Objects;
 
 public final class ShakyTextEffect implements TextEffect {

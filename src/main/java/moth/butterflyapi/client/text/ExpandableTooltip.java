@@ -1,7 +1,5 @@
 package moth.butterflyapi.client.text;
 
-import net.minecraft.text.Text;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,15 +7,16 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import net.minecraft.network.chat.Component;
 
 public final class ExpandableTooltip {
     private static final Set<String> ACTIVE_NODES = ConcurrentHashMap.newKeySet();
 
     private final TooltipExpandKey key;
-    private final Text prompt;
+    private final Component prompt;
     private final List<Entry> entries;
 
-    private ExpandableTooltip(TooltipExpandKey key, Text prompt, List<Entry> entries) {
+    private ExpandableTooltip(TooltipExpandKey key, Component prompt, List<Entry> entries) {
         this.key = Objects.requireNonNull(key, "key");
         this.prompt = Objects.requireNonNull(prompt, "prompt");
         this.entries = List.copyOf(entries);
@@ -31,13 +30,13 @@ public final class ExpandableTooltip {
         return new Builder(key);
     }
 
-    public void addTo(List<Text> tooltip) {
+    public void addTo(List<Component> tooltip) {
         Objects.requireNonNull(tooltip, "tooltip");
         tooltip.addAll(lines());
     }
 
-    public List<Text> lines() {
-        List<Text> lines = new ArrayList<>();
+    public List<Component> lines() {
+        List<Component> lines = new ArrayList<>();
         appendTo(lines);
         return List.copyOf(lines);
     }
@@ -46,11 +45,15 @@ public final class ExpandableTooltip {
         return updateState(true, "root");
     }
 
-    private void appendTo(List<Text> lines) {
+    public static void clearInteractionState() {
+        ACTIVE_NODES.clear();
+    }
+
+    private void appendTo(List<Component> lines) {
         appendTo(lines, true, "root");
     }
 
-    private void appendTo(List<Text> lines, boolean parentVisible, String path) {
+    private void appendTo(List<Component> lines, boolean parentVisible, String path) {
         boolean expanded = updateState(parentVisible, path);
         if (!expanded) {
             lines.add(prompt);
@@ -88,7 +91,7 @@ public final class ExpandableTooltip {
 
     public static final class Builder {
         private final TooltipExpandKey key;
-        private Text prompt;
+        private Component prompt;
         private final List<Entry> entries = new ArrayList<>();
 
         private Builder(TooltipExpandKey key) {
@@ -96,51 +99,59 @@ public final class ExpandableTooltip {
             this.prompt = ExpandableTooltips.defaultPrompt(key);
         }
 
-        public Builder prompt(Text prompt) {
+        public Builder prompt(Component prompt) {
             this.prompt = Objects.requireNonNull(prompt, "prompt");
             return this;
         }
 
         public Builder line(String line) {
-            return line(Text.literal(Objects.requireNonNull(line, "line")));
+            return line(Component.literal(Objects.requireNonNull(line, "line")));
         }
 
-        public Builder line(Text line) {
+        public Builder line(Component line) {
             entries.add(new Line(Objects.requireNonNull(line, "line")));
             return this;
         }
 
-        public Builder lines(List<? extends Text> lines) {
+        public Builder lines(List<? extends Component> lines) {
             Objects.requireNonNull(lines, "lines");
-            for (Text line : lines) {
+            for (Component line : lines) {
                 line(line);
             }
             return this;
         }
 
         public Builder action(TooltipExpandKey key, String actionName, Runnable action) {
-            return action(key, TooltipActions.defaultPrompt(key, Text.literal(actionName)), actionName, action);
+            return action(key, TooltipActions.defaultPrompt(key, Component.literal(actionName)), actionName, action);
         }
 
-        public Builder action(TooltipExpandKey key, Text actionName, Runnable action) {
+        public Builder action(TooltipExpandKey key, Component actionName, Runnable action) {
             return action(key, TooltipActions.defaultPrompt(key, actionName), actionName.getString(), action);
         }
 
-        public Builder action(TooltipExpandKey key, Text prompt, String actionId, Runnable action) {
+        public Builder action(TooltipExpandKey key, Component prompt, String actionId, Runnable action) {
             entries.add(new Action(key, prompt, actionId, action));
             return this;
         }
 
         public Builder link(TooltipExpandKey key, String label, String uri) {
-            return link(key, Text.literal(label), URI.create(Objects.requireNonNull(uri, "uri")));
+            return link(key, Component.literal(label), URI.create(Objects.requireNonNull(uri, "uri")));
         }
 
-        public Builder link(TooltipExpandKey key, Text label, URI uri) {
+        public Builder link(TooltipExpandKey key, Component label, URI uri) {
             Objects.requireNonNull(uri, "uri");
             return action(key, TooltipActions.defaultPrompt(key, label), "link:" + uri, () -> {
-                net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+                net.minecraft.client.Minecraft client = net.minecraft.client.Minecraft.getInstance();
                 if (client != null) {
-                    net.minecraft.client.gui.screen.ConfirmLinkScreen.open(client.currentScreen, uri);
+                    net.minecraft.client.gui.screens.ConfirmLinkScreen.confirmLinkNow(
+//? if >=26.2 {
+/*
+                            client.gui.screen(),
+*///?} else {
+                            client.screen,
+//?}
+                            uri
+                    );
                 }
             });
         }
@@ -162,19 +173,19 @@ public final class ExpandableTooltip {
     }
 
     private sealed interface Entry permits Line, Action, Nested {
-        void appendTo(List<Text> lines, boolean parentVisible, String path);
+        void appendTo(List<Component> lines, boolean parentVisible, String path);
     }
 
-    private record Line(Text text) implements Entry {
+    private record Line(Component text) implements Entry {
         @Override
-        public void appendTo(List<Text> lines, boolean parentVisible, String path) {
+        public void appendTo(List<Component> lines, boolean parentVisible, String path) {
             lines.add(text);
         }
     }
 
-    private record Action(TooltipExpandKey key, Text prompt, String id, Runnable action) implements Entry {
+    private record Action(TooltipExpandKey key, Component prompt, String id, Runnable action) implements Entry {
         @Override
-        public void appendTo(List<Text> lines, boolean parentVisible, String path) {
+        public void appendTo(List<Component> lines, boolean parentVisible, String path) {
             lines.add(prompt);
             TooltipActions.runWhenPressed(key, id, action);
         }
@@ -182,7 +193,7 @@ public final class ExpandableTooltip {
 
     private record Nested(ExpandableTooltip tooltip) implements Entry {
         @Override
-        public void appendTo(List<Text> lines, boolean parentVisible, String path) {
+        public void appendTo(List<Component> lines, boolean parentVisible, String path) {
             tooltip.appendTo(lines, parentVisible, path);
         }
     }

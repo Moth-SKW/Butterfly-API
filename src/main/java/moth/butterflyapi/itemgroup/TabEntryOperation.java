@@ -1,16 +1,16 @@
 package moth.butterflyapi.itemgroup;
 
-import net.minecraft.item.ItemGroup;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import net.minecraft.world.item.CreativeModeTab;
 
 interface TabEntryOperation {
 }
 
 record TabEntriesOperation(
-        Consumer<ItemGroup.Entries> consumer,
+        Consumer<CreativeModeTab.Output> consumer,
         boolean searchOnly,
         @Nullable TabSurface slotBackground
 ) implements TabEntryOperation {
@@ -18,7 +18,7 @@ record TabEntriesOperation(
         Objects.requireNonNull(consumer, "consumer");
     }
 
-    TabEntriesOperation(Consumer<ItemGroup.Entries> consumer, boolean searchOnly) {
+    TabEntriesOperation(Consumer<CreativeModeTab.Output> consumer, boolean searchOnly) {
         this(consumer, searchOnly, null);
     }
 }

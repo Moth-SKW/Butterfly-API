@@ -1,15 +1,17 @@
 package moth.butterflyapi.outline.internal.network;
 
 import moth.butterflyapi.outline.OutlinePlacement;
+import moth.butterflyapi.outline.EntityOutline;
+import moth.butterflyapi.outline.EntityOutlinePart;
 import moth.butterflyapi.outline.OutlineStyle;
-import net.minecraft.network.PacketByteBuf;
+import net.minecraft.network.FriendlyByteBuf;
 import org.jetbrains.annotations.Nullable;
 
 final class OutlinePacketCodecs {
     private OutlinePacketCodecs() {
     }
 
-    static void writeStyle(PacketByteBuf buffer, @Nullable OutlineStyle style) {
+    static void writeStyle(FriendlyByteBuf buffer, @Nullable OutlineStyle style) {
         buffer.writeBoolean(style != null);
         if (style == null) {
             return;
@@ -25,12 +27,62 @@ final class OutlinePacketCodecs {
         buffer.writeFloat(style.thicknessAdaptationRate());
     }
 
+    static void writeEntityOutline(FriendlyByteBuf buffer, @Nullable EntityOutline outline) {
+        buffer.writeBoolean(outline != null);
+        if (outline == null) {
+            return;
+        }
+
+        buffer.writeVarInt(outline.styles().size());
+        for (var entry : outline.styles().entrySet()) {
+            buffer.writeVarInt(entry.getKey().ordinal());
+            writeStyleData(buffer, entry.getValue());
+        }
+    }
+
     @Nullable
-    static OutlineStyle readStyle(PacketByteBuf buffer) {
+    static OutlineStyle readStyle(FriendlyByteBuf buffer) {
         if (!buffer.readBoolean()) {
             return null;
         }
 
+        return readStyleData(buffer);
+    }
+
+    @Nullable
+    static EntityOutline readEntityOutline(FriendlyByteBuf buffer) {
+        if (!buffer.readBoolean()) {
+            return null;
+        }
+
+        int size = buffer.readVarInt();
+        if (size < 0 || size > EntityOutlinePart.values().length) {
+            throw new IllegalArgumentException("Invalid entity outline part count: " + size);
+        }
+        EntityOutline.Builder builder = EntityOutline.builder();
+        for (int index = 0; index < size; index++) {
+            int ordinal = buffer.readVarInt();
+            EntityOutlinePart[] parts = EntityOutlinePart.values();
+            if (ordinal < 0 || ordinal >= parts.length) {
+                throw new IllegalArgumentException("Invalid entity outline part: " + ordinal);
+            }
+            builder.part(parts[ordinal], readStyleData(buffer));
+        }
+        return builder.build();
+    }
+
+    private static void writeStyleData(FriendlyByteBuf buffer, OutlineStyle style) {
+        buffer.writeInt(style.rgb());
+        buffer.writeVarInt(style.thickness());
+        buffer.writeVarInt(style.placement().id());
+        buffer.writeBoolean(style.blackBorder());
+        buffer.writeBoolean(style.visibleThroughWalls());
+        buffer.writeBoolean(style.matchModelLayer());
+        buffer.writeBoolean(style.consistentThickness());
+        buffer.writeFloat(style.thicknessAdaptationRate());
+    }
+
+    private static OutlineStyle readStyleData(FriendlyByteBuf buffer) {
         int rgb = buffer.readInt();
         int thickness = buffer.readVarInt();
         OutlinePlacement placement = OutlinePlacement.fromId(buffer.readVarInt());

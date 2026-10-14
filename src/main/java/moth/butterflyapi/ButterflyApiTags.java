@@ -1,9 +1,9 @@
 package moth.butterflyapi;
 
-import net.minecraft.block.Block;
-import net.minecraft.item.Item;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
 
 public final class ButterflyApiTags {
     public static final TagKey<Block> PLUSH_BLOCKS = block("plushes");
@@ -13,10 +13,10 @@ public final class ButterflyApiTags {
     }
 
     public static TagKey<Block> block(String path) {
-        return TagKey.of(RegistryKeys.BLOCK, ButterflyApi.id(path));
+        return TagKey.create(Registries.BLOCK, ButterflyApi.id(path));
     }
 
     public static TagKey<Item> item(String path) {
-        return TagKey.of(RegistryKeys.ITEM, ButterflyApi.id(path));
+        return TagKey.create(Registries.ITEM, ButterflyApi.id(path));
     }
 }

@@ -1,13 +1,12 @@
 package moth.butterflyapi.text;
 
-import net.minecraft.util.Identifier;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.resources.Identifier;
 
 public final class TextEffectRegistry {
     private static final Map<Identifier, TextEffect> EFFECTS = new ConcurrentHashMap<>();

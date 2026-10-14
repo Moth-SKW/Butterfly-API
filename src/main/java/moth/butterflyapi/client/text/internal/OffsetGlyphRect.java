@@ -1,20 +1,27 @@
 package moth.butterflyapi.client.text.internal;
 
+//? if >=1.21.11 {
+//? if >=26.3 {
+/*
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
+*///?} else {
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.textures.GpuTextureView;
-import net.minecraft.client.font.TextDrawable;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.text.Style;
+//?}
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.font.TextRenderable;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.network.chat.Style;
 import org.joml.Matrix4f;
 
-public final class OffsetGlyphRect implements TextDrawable.DrawnGlyphRect {
-    private final TextDrawable.DrawnGlyphRect delegate;
+public final class OffsetGlyphRect implements TextRenderable.Styled {
+    private final TextRenderable.Styled delegate;
     private final float offsetX;
     private final float offsetY;
 
-    public OffsetGlyphRect(TextDrawable.DrawnGlyphRect delegate, float offsetX, float offsetY) {
+    public OffsetGlyphRect(TextRenderable.Styled delegate, float offsetX, float offsetY) {
         this.delegate = delegate;
         this.offsetX = offsetX;
         this.offsetY = offsetY;
@@ -26,23 +33,23 @@ public final class OffsetGlyphRect implements TextDrawable.DrawnGlyphRect {
     }
 
     @Override
-    public float getLeft() {
-        return delegate.getLeft() + offsetX;
+    public float activeLeft() {
+        return delegate.activeLeft() + offsetX;
     }
 
     @Override
-    public float getTop() {
-        return delegate.getTop() + offsetY;
+    public float activeTop() {
+        return delegate.activeTop() + offsetY;
     }
 
     @Override
-    public float getRight() {
-        return delegate.getRight() + offsetX;
+    public float activeRight() {
+        return delegate.activeRight() + offsetX;
     }
 
     @Override
-    public float getBottom() {
-        return delegate.getBottom() + offsetY;
+    public float activeBottom() {
+        return delegate.activeBottom() + offsetY;
     }
 
     @Override
@@ -51,8 +58,8 @@ public final class OffsetGlyphRect implements TextDrawable.DrawnGlyphRect {
     }
 
     @Override
-    public RenderLayer getRenderLayer(TextRenderer.TextLayerType layerType) {
-        return delegate.getRenderLayer(layerType);
+    public RenderType renderType(Font.DisplayMode layerType) {
+        return delegate.renderType(layerType);
     }
 
     @Override
@@ -61,27 +68,28 @@ public final class OffsetGlyphRect implements TextDrawable.DrawnGlyphRect {
     }
 
     @Override
-    public RenderPipeline getPipeline() {
-        return delegate.getPipeline();
+    public RenderPipeline guiPipeline() {
+        return delegate.guiPipeline();
     }
 
     @Override
-    public float getEffectiveMinX() {
-        return delegate.getEffectiveMinX() + offsetX;
+    public float left() {
+        return delegate.left() + offsetX;
     }
 
     @Override
-    public float getEffectiveMinY() {
-        return delegate.getEffectiveMinY() + offsetY;
+    public float top() {
+        return delegate.top() + offsetY;
     }
 
     @Override
-    public float getEffectiveMaxX() {
-        return delegate.getEffectiveMaxX() + offsetX;
+    public float right() {
+        return delegate.right() + offsetX;
     }
 
     @Override
-    public float getEffectiveMaxY() {
-        return delegate.getEffectiveMaxY() + offsetY;
+    public float bottom() {
+        return delegate.bottom() + offsetY;
     }
 }
+//?}

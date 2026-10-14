@@ -1,5 +1,7 @@
 package moth.butterflyapi.outline.internal;
 
+import moth.butterflyapi.outline.EntityOutline;
+import moth.butterflyapi.outline.EntityOutlinePart;
 import moth.butterflyapi.outline.OutlineStyle;
 import moth.butterflyapi.outline.internal.network.BlockEntityOutlineUpdateS2CPacket;
 import moth.butterflyapi.outline.internal.network.EntityOutlineUpdateS2CPacket;
@@ -12,16 +14,16 @@ import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.entity.Entity;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -55,13 +57,13 @@ public final class OutlineServerManager {
         );
 
         EntityTrackingEvents.START_TRACKING.register((entity, player) -> {
-            State state = existing(player.getEntityWorld().getServer());
+            State state = existing(player.level().getServer());
             if (state != null) {
                 state.startTracking(entity, player);
             }
         });
         EntityTrackingEvents.STOP_TRACKING.register((entity, player) -> {
-            State state = existing(player.getEntityWorld().getServer());
+            State state = existing(player.level().getServer());
             if (state != null) {
                 state.stopTracking(entity, player);
             }
@@ -70,7 +72,14 @@ public final class OutlineServerManager {
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             State state = existing(server);
             if (state != null) {
-                state.syncWorld(handler.player, handler.player.getEntityWorld());
+                state.syncWorld(handler.player,
+//? if <1.21.11 {
+/*
+                        handler.player.serverLevel()
+*///?} else {
+                        handler.player.level()
+//?}
+                );
             }
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
@@ -121,26 +130,53 @@ public final class OutlineServerManager {
     }
 
     public static void set(Entity entity, OutlineStyle style) {
-        ServerWorld world = requireServerWorld(entity);
+        set(entity, EntityOutline.attached(style));
+    }
+
+    public static void set(Entity entity, EntityOutline outline) {
+        ServerLevel world = requireServerWorld(entity);
         if (entity.isRemoved()) {
             throw new IllegalArgumentException("Cannot outline a removed entity");
         }
         requireServerThread(world.getServer());
-        state(world.getServer()).set(entity, Objects.requireNonNull(style, "style"));
+        state(world.getServer()).set(entity, Objects.requireNonNull(outline, "outline"));
     }
 
-    public static void setFor(ServerPlayerEntity viewer, Entity entity, OutlineStyle style) {
-        ServerWorld world = requireServerWorld(entity);
+    public static void setFor(ServerPlayer viewer, Entity entity, OutlineStyle style) {
+        setFor(viewer, entity, EntityOutline.attached(style));
+    }
+
+    public static void setFor(ServerPlayer viewer, Entity entity, EntityOutline outline) {
+        ServerLevel world = requireServerWorld(entity);
         requireSameServer(viewer, world.getServer());
         if (entity.isRemoved()) {
             throw new IllegalArgumentException("Cannot outline a removed entity");
         }
         requireServerThread(world.getServer());
-        state(world.getServer()).setFor(viewer, entity, Objects.requireNonNull(style, "style"));
+        state(world.getServer()).setFor(viewer, entity, Objects.requireNonNull(outline, "outline"));
+    }
+
+    public static void setPart(Entity entity, EntityOutlinePart part, OutlineStyle style) {
+        ServerLevel world = requireServerWorld(entity);
+        if (entity.isRemoved()) {
+            throw new IllegalArgumentException("Cannot outline a removed entity");
+        }
+        requireServerThread(world.getServer());
+        state(world.getServer()).setPart(entity, part, style);
+    }
+
+    public static void setPartFor(ServerPlayer viewer, Entity entity, EntityOutlinePart part, OutlineStyle style) {
+        ServerLevel world = requireServerWorld(entity);
+        requireSameServer(viewer, world.getServer());
+        if (entity.isRemoved()) {
+            throw new IllegalArgumentException("Cannot outline a removed entity");
+        }
+        requireServerThread(world.getServer());
+        state(world.getServer()).setPartFor(viewer, entity, part, style);
     }
 
     public static void clear(Entity entity) {
-        ServerWorld world = requireServerWorld(entity);
+        ServerLevel world = requireServerWorld(entity);
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
         if (state != null) {
@@ -148,8 +184,17 @@ public final class OutlineServerManager {
         }
     }
 
-    public static void clearFor(ServerPlayerEntity viewer, Entity entity) {
-        ServerWorld world = requireServerWorld(entity);
+    public static void clearPart(Entity entity, EntityOutlinePart part) {
+        ServerLevel world = requireServerWorld(entity);
+        requireServerThread(world.getServer());
+        State state = existing(world.getServer());
+        if (state != null) {
+            state.clearPart(entity, part);
+        }
+    }
+
+    public static void clearFor(ServerPlayer viewer, Entity entity) {
+        ServerLevel world = requireServerWorld(entity);
         requireSameServer(viewer, world.getServer());
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
@@ -158,17 +203,44 @@ public final class OutlineServerManager {
         }
     }
 
+    public static void clearPartFor(ServerPlayer viewer, Entity entity, EntityOutlinePart part) {
+        ServerLevel world = requireServerWorld(entity);
+        requireSameServer(viewer, world.getServer());
+        requireServerThread(world.getServer());
+        State state = existing(world.getServer());
+        if (state != null) {
+            state.clearPartFor(viewer, entity, part);
+        }
+    }
+
     @Nullable
     public static OutlineStyle get(Entity entity) {
-        ServerWorld world = requireServerWorld(entity);
+        ServerLevel world = requireServerWorld(entity);
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
         return state == null ? null : state.get(entity);
     }
 
     @Nullable
-    public static OutlineStyle getFor(ServerPlayerEntity viewer, Entity entity) {
-        ServerWorld world = requireServerWorld(entity);
+    public static EntityOutline getOutline(Entity entity) {
+        ServerLevel world = requireServerWorld(entity);
+        requireServerThread(world.getServer());
+        State state = existing(world.getServer());
+        return state == null ? null : state.getOutline(entity);
+    }
+
+    @Nullable
+    public static EntityOutline getOutlineFor(ServerPlayer viewer, Entity entity) {
+        ServerLevel world = requireServerWorld(entity);
+        requireSameServer(viewer, world.getServer());
+        requireServerThread(world.getServer());
+        State state = existing(world.getServer());
+        return state == null ? null : state.getOutlineFor(viewer, entity);
+    }
+
+    @Nullable
+    public static OutlineStyle getFor(ServerPlayer viewer, Entity entity) {
+        ServerLevel world = requireServerWorld(entity);
         requireSameServer(viewer, world.getServer());
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
@@ -176,7 +248,7 @@ public final class OutlineServerManager {
     }
 
     public static void set(BlockEntity blockEntity, OutlineStyle style) {
-        ServerWorld world = requireServerWorld(blockEntity);
+        ServerLevel world = requireServerWorld(blockEntity);
         if (blockEntity.isRemoved()) {
             throw new IllegalArgumentException("Cannot outline a removed block entity");
         }
@@ -184,8 +256,8 @@ public final class OutlineServerManager {
         state(world.getServer()).set(blockEntity, world, Objects.requireNonNull(style, "style"));
     }
 
-    public static void setFor(ServerPlayerEntity viewer, BlockEntity blockEntity, OutlineStyle style) {
-        ServerWorld world = requireServerWorld(blockEntity);
+    public static void setFor(ServerPlayer viewer, BlockEntity blockEntity, OutlineStyle style) {
+        ServerLevel world = requireServerWorld(blockEntity);
         requireSameServer(viewer, world.getServer());
         if (blockEntity.isRemoved()) {
             throw new IllegalArgumentException("Cannot outline a removed block entity");
@@ -195,7 +267,7 @@ public final class OutlineServerManager {
     }
 
     public static void clear(BlockEntity blockEntity) {
-        ServerWorld world = requireServerWorld(blockEntity);
+        ServerLevel world = requireServerWorld(blockEntity);
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
         if (state != null) {
@@ -203,8 +275,8 @@ public final class OutlineServerManager {
         }
     }
 
-    public static void clearFor(ServerPlayerEntity viewer, BlockEntity blockEntity) {
-        ServerWorld world = requireServerWorld(blockEntity);
+    public static void clearFor(ServerPlayer viewer, BlockEntity blockEntity) {
+        ServerLevel world = requireServerWorld(blockEntity);
         requireSameServer(viewer, world.getServer());
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
@@ -215,15 +287,15 @@ public final class OutlineServerManager {
 
     @Nullable
     public static OutlineStyle get(BlockEntity blockEntity) {
-        ServerWorld world = requireServerWorld(blockEntity);
+        ServerLevel world = requireServerWorld(blockEntity);
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
         return state == null ? null : state.get(blockEntity, world);
     }
 
     @Nullable
-    public static OutlineStyle getFor(ServerPlayerEntity viewer, BlockEntity blockEntity) {
-        ServerWorld world = requireServerWorld(blockEntity);
+    public static OutlineStyle getFor(ServerPlayer viewer, BlockEntity blockEntity) {
+        ServerLevel world = requireServerWorld(blockEntity);
         requireSameServer(viewer, world.getServer());
         requireServerThread(world.getServer());
         State state = existing(world.getServer());
@@ -239,31 +311,31 @@ public final class OutlineServerManager {
         return STATES.get(server);
     }
 
-    private static ServerWorld requireServerWorld(Entity entity) {
+    private static ServerLevel requireServerWorld(Entity entity) {
         Objects.requireNonNull(entity, "entity");
-        if (!(entity.getEntityWorld() instanceof ServerWorld world)) {
+        if (!(entity.level() instanceof ServerLevel world)) {
             throw new IllegalArgumentException("Entity outlines must target an entity in a server world");
         }
         return world;
     }
 
-    private static ServerWorld requireServerWorld(BlockEntity blockEntity) {
+    private static ServerLevel requireServerWorld(BlockEntity blockEntity) {
         Objects.requireNonNull(blockEntity, "blockEntity");
-        if (!blockEntity.hasWorld() || !(blockEntity.getWorld() instanceof ServerWorld world)) {
+        if (!blockEntity.hasLevel() || !(blockEntity.getLevel() instanceof ServerLevel world)) {
             throw new IllegalArgumentException("Block entity outlines must target a block entity in a server world");
         }
         return world;
     }
 
-    private static void requireSameServer(ServerPlayerEntity viewer, MinecraftServer server) {
+    private static void requireSameServer(ServerPlayer viewer, MinecraftServer server) {
         Objects.requireNonNull(viewer, "viewer");
-        if (viewer.getEntityWorld().getServer() != server) {
+        if (viewer.level().getServer() != server) {
             throw new IllegalArgumentException("Viewer and outline target must belong to the same server");
         }
     }
 
     private static void requireServerThread(MinecraftServer server) {
-        if (!server.isOnThread()) {
+        if (!server.isSameThread()) {
             throw new IllegalStateException("ServerOutlines must be used from the logical server thread");
         }
     }
@@ -277,68 +349,141 @@ public final class OutlineServerManager {
             this.server = server;
         }
 
-        void set(Entity entity, OutlineStyle style) {
+        void set(Entity entity, EntityOutline outline) {
             EntityEntry entry = entityEntry(entity);
-            entry.global = style;
+            if (outline.equals(entry.global)) {
+                return;
+            }
+            entry.global = outline;
             syncEntityViewers(entity, entry);
         }
 
-        void setFor(ServerPlayerEntity viewer, Entity entity, OutlineStyle style) {
+        void setFor(ServerPlayer viewer, Entity entity, EntityOutline outline) {
             EntityEntry entry = entityEntry(entity);
-            entry.viewerStyles.put(viewer.getUuid(), style);
-            send(viewer, entry.target, style);
+            entry.viewerOutlines.put(viewer.getUUID(), outline);
+            send(viewer, entry, outline);
+        }
+
+        void setPart(Entity entity, EntityOutlinePart part, OutlineStyle style) {
+            EntityEntry entry = entityEntry(entity);
+            EntityOutline current = entry.global == null ? EntityOutline.empty() : entry.global;
+            entry.global = current.with(part, style);
+            syncEntityViewers(entity, entry);
+        }
+
+        void setPartFor(ServerPlayer viewer, Entity entity, EntityOutlinePart part, OutlineStyle style) {
+            EntityEntry entry = entityEntry(entity);
+            EntityOutline current = entry.effective(viewer.getUUID());
+            entry.viewerOutlines.put(viewer.getUUID(), (current == null ? EntityOutline.empty() : current).with(part, style));
+            send(viewer, entry, entry.effective(viewer.getUUID()));
         }
 
         void clear(Entity entity) {
-            EntityEntry entry = entityEntries.get(entity.getUuid());
+            EntityEntry entry = entityEntries.get(entity.getUUID());
             if (entry == null) {
                 return;
             }
             updateEntityTarget(entry, EntityTarget.of(entity));
+            if (entry.global == null) {
+                return;
+            }
             entry.global = null;
             syncEntityViewers(entity, entry);
             pruneEntity(entry);
         }
 
-        void clearFor(ServerPlayerEntity viewer, Entity entity) {
-            EntityEntry entry = entityEntries.get(entity.getUuid());
+        void clearPart(Entity entity, EntityOutlinePart part) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
+            if (entry == null || entry.global == null) {
+                return;
+            }
+            updateEntityTarget(entry, EntityTarget.of(entity));
+            entry.global = entry.global.without(part);
+            if (entry.global.isEmpty()) {
+                entry.global = null;
+            }
+            syncEntityViewers(entity, entry);
+            pruneEntity(entry);
+        }
+
+        void clearFor(ServerPlayer viewer, Entity entity) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
             if (entry == null) {
                 return;
             }
             updateEntityTarget(entry, EntityTarget.of(entity));
-            entry.viewerStyles.remove(viewer.getUuid());
-            send(viewer, entry.target, entry.global);
+            entry.viewerOutlines.remove(viewer.getUUID());
+            send(viewer, entry, entry.global);
+            pruneEntity(entry);
+        }
+
+        void clearPartFor(ServerPlayer viewer, Entity entity, EntityOutlinePart part) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
+            if (entry == null) {
+                return;
+            }
+            updateEntityTarget(entry, EntityTarget.of(entity));
+            EntityOutline viewerOutline = entry.viewerOutlines.get(viewer.getUUID());
+            if (viewerOutline == null) {
+                return;
+            }
+            EntityOutline updated = viewerOutline.without(part);
+            if (updated.isEmpty() && entry.global == null) {
+                entry.viewerOutlines.remove(viewer.getUUID());
+            } else {
+                entry.viewerOutlines.put(viewer.getUUID(), updated);
+            }
+            send(viewer, entry, entry.effective(viewer.getUUID()));
             pruneEntity(entry);
         }
 
         @Nullable
         OutlineStyle get(Entity entity) {
-            EntityEntry entry = entityEntries.get(entity.getUuid());
+            EntityEntry entry = entityEntries.get(entity.getUUID());
+            return entry == null || entry.global == null ? null : entry.global.primaryStyle();
+        }
+
+        @Nullable
+        OutlineStyle getFor(ServerPlayer viewer, Entity entity) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
+            EntityOutline outline = entry == null ? null : entry.effective(viewer.getUUID());
+            return outline == null ? null : outline.primaryStyle();
+        }
+
+        @Nullable
+        EntityOutline getOutline(Entity entity) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
             return entry == null ? null : entry.global;
         }
 
         @Nullable
-        OutlineStyle getFor(ServerPlayerEntity viewer, Entity entity) {
-            EntityEntry entry = entityEntries.get(entity.getUuid());
-            return entry == null ? null : entry.effective(viewer.getUuid());
+        EntityOutline getOutlineFor(ServerPlayer viewer, Entity entity) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
+            return entry == null ? null : entry.effective(viewer.getUUID());
         }
 
-        void set(BlockEntity blockEntity, ServerWorld world, OutlineStyle style) {
+        void set(BlockEntity blockEntity, ServerLevel world, OutlineStyle style) {
             BlockEntry entry = blockEntry(blockEntity, world);
+            if (style.equals(entry.global)) {
+                return;
+            }
             entry.global = style;
             syncBlockWorld(world, entry);
         }
 
-        void setFor(ServerPlayerEntity viewer, BlockEntity blockEntity, ServerWorld world, OutlineStyle style) {
+        void setFor(ServerPlayer viewer, BlockEntity blockEntity, ServerLevel world, OutlineStyle style) {
             BlockEntry entry = blockEntry(blockEntity, world);
-            entry.viewerStyles.put(viewer.getUuid(), style);
-            send(viewer, entry.target, style);
+            entry.viewerStyles.put(viewer.getUUID(), style);
+            send(viewer, entry, style);
         }
 
-        void clear(BlockEntity blockEntity, ServerWorld world) {
+        void clear(BlockEntity blockEntity, ServerLevel world) {
             BlockTarget target = BlockTarget.of(blockEntity, world);
             BlockEntry entry = blockEntries.get(target);
             if (entry == null) {
+                return;
+            }
+            if (entry.global == null) {
                 return;
             }
             entry.global = null;
@@ -346,56 +491,57 @@ public final class OutlineServerManager {
             pruneBlock(entry);
         }
 
-        void clearFor(ServerPlayerEntity viewer, BlockEntity blockEntity, ServerWorld world) {
+        void clearFor(ServerPlayer viewer, BlockEntity blockEntity, ServerLevel world) {
             BlockTarget target = BlockTarget.of(blockEntity, world);
             BlockEntry entry = blockEntries.get(target);
             if (entry == null) {
                 return;
             }
-            entry.viewerStyles.remove(viewer.getUuid());
-            send(viewer, entry.target, entry.global);
+            entry.viewerStyles.remove(viewer.getUUID());
+            send(viewer, entry, entry.global);
             pruneBlock(entry);
         }
 
         @Nullable
-        OutlineStyle get(BlockEntity blockEntity, ServerWorld world) {
+        OutlineStyle get(BlockEntity blockEntity, ServerLevel world) {
             BlockEntry entry = blockEntries.get(BlockTarget.of(blockEntity, world));
             return entry == null ? null : entry.global;
         }
 
         @Nullable
-        OutlineStyle getFor(ServerPlayerEntity viewer, BlockEntity blockEntity, ServerWorld world) {
+        OutlineStyle getFor(ServerPlayer viewer, BlockEntity blockEntity, ServerLevel world) {
             BlockEntry entry = blockEntries.get(BlockTarget.of(blockEntity, world));
-            return entry == null ? null : entry.effective(viewer.getUuid());
+            return entry == null ? null : entry.effective(viewer.getUUID());
         }
 
-        void startTracking(Entity entity, ServerPlayerEntity player) {
-            EntityEntry entry = entityEntries.get(entity.getUuid());
+        void startTracking(Entity entity, ServerPlayer player) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
             if (entry == null) {
                 return;
             }
             updateEntityTarget(entry, EntityTarget.of(entity));
-            OutlineStyle style = entry.effective(player.getUuid());
-            if (style != null) {
-                send(player, entry.target, style);
+            EntityOutline outline = entry.effective(player.getUUID());
+            if (outline != null) {
+                send(player, entry, outline);
             }
         }
 
-        void stopTracking(Entity entity, ServerPlayerEntity player) {
-            EntityEntry entry = entityEntries.get(entity.getUuid());
-            if (entry != null && entry.effective(player.getUuid()) != null) {
-                send(player, entry.target, null);
+        void stopTracking(Entity entity, ServerPlayer player) {
+            EntityEntry entry = entityEntries.get(entity.getUUID());
+            if (entry != null && entry.effective(player.getUUID()) != null) {
+                send(player, entry, null);
+                entry.sentOutlines.remove(player.getUUID());
             }
         }
 
-        void syncWorld(ServerPlayerEntity player, ServerWorld world) {
+        void syncWorld(ServerPlayer player, ServerLevel world) {
             Identifier dimension = dimension(world);
-            UUID viewer = player.getUuid();
+            UUID viewer = player.getUUID();
             for (EntityEntry entry : entityEntries.values()) {
                 if (entry.target.dimension().equals(dimension)) {
-                    OutlineStyle style = entry.effective(viewer);
-                    if (style != null) {
-                        send(player, entry.target, style);
+                    EntityOutline outline = entry.effective(viewer);
+                    if (outline != null) {
+                        send(player, entry, outline);
                     }
                 }
             }
@@ -403,40 +549,49 @@ public final class OutlineServerManager {
                 if (entry.target.dimension().equals(dimension)) {
                     OutlineStyle style = entry.effective(viewer);
                     if (style != null) {
-                        send(player, entry.target, style);
+                        send(player, entry, style);
                     }
                 }
             }
         }
 
-        void playerDisconnected(ServerPlayerEntity player) {
-            UUID viewer = player.getUuid();
+        void playerDisconnected(ServerPlayer player) {
+            UUID viewer = player.getUUID();
             EntityEntry playerEntry = entityEntries.remove(viewer);
             if (playerEntry != null) {
-                clearEntityFromWorld(playerEntry, player.getEntityWorld());
+                clearEntityFromWorld(playerEntry,
+//? if <1.21.11 {
+/*
+                        player.serverLevel()
+*///?} else {
+                        player.level()
+//?}
+                );
             }
-            entityEntries.values().forEach(entry -> entry.viewerStyles.remove(viewer));
+            entityEntries.values().forEach(entry -> entry.viewerOutlines.remove(viewer));
             blockEntries.values().forEach(entry -> entry.viewerStyles.remove(viewer));
+            entityEntries.values().forEach(entry -> entry.sentOutlines.remove(viewer));
+            blockEntries.values().forEach(entry -> entry.sentStyles.remove(viewer));
             entityEntries.values().removeIf(entry -> entry.isEmpty());
             blockEntries.values().removeIf(entry -> entry.isEmpty());
         }
 
-        void entityDestroyed(Entity entity, ServerWorld world) {
-            EntityEntry entry = entityEntries.remove(entity.getUuid());
+        void entityDestroyed(Entity entity, ServerLevel world) {
+            EntityEntry entry = entityEntries.remove(entity.getUUID());
             if (entry != null) {
                 clearEntityFromWorld(entry, world);
             }
         }
 
-        void blockEntityUnloaded(BlockEntity blockEntity, ServerWorld world) {
+        void blockEntityUnloaded(BlockEntity blockEntity, ServerLevel world) {
             BlockEntry entry = blockEntries.remove(BlockTarget.of(blockEntity, world));
             if (entry != null) {
                 clearBlockFromWorld(entry, world);
             }
         }
 
-        void entityChangedWorld(Entity original, Entity moved, ServerWorld origin, ServerWorld destination) {
-            EntityEntry entry = entityEntries.remove(original.getUuid());
+        void entityChangedWorld(Entity original, Entity moved, ServerLevel origin, ServerLevel destination) {
+            EntityEntry entry = entityEntries.remove(original.getUUID());
             if (entry == null) {
                 return;
             }
@@ -444,14 +599,14 @@ public final class OutlineServerManager {
             entry.target = EntityTarget.of(original, origin);
             clearEntityFromWorld(entry, origin);
             entry.target = EntityTarget.of(moved);
-            entityEntries.put(moved.getUuid(), entry);
+            entityEntries.put(moved.getUUID(), entry);
             syncEntityWorld(destination, entry);
         }
 
-        void playerChangedWorld(ServerPlayerEntity player, ServerWorld origin, ServerWorld destination) {
+        void playerChangedWorld(ServerPlayer player, ServerLevel origin, ServerLevel destination) {
             clearWorldFor(player, origin);
 
-            EntityEntry playerEntry = entityEntries.get(player.getUuid());
+            EntityEntry playerEntry = entityEntries.get(player.getUUID());
             if (playerEntry != null) {
                 playerEntry.target = EntityTarget.of(player, origin);
                 clearEntityFromWorld(playerEntry, origin);
@@ -472,14 +627,14 @@ public final class OutlineServerManager {
             return entry;
         }
 
-        private BlockEntry blockEntry(BlockEntity blockEntity, ServerWorld world) {
+        private BlockEntry blockEntry(BlockEntity blockEntity, ServerLevel world) {
             BlockTarget target = BlockTarget.of(blockEntity, world);
             return blockEntries.computeIfAbsent(target, BlockEntry::new);
         }
 
         private void updateEntityTarget(EntityEntry entry, EntityTarget target) {
             if (!entry.target.dimension().equals(target.dimension())) {
-                ServerWorld oldWorld = world(entry.target.dimension());
+                ServerLevel oldWorld = world(entry.target.dimension());
                 if (oldWorld != null) {
                     clearEntityFromWorld(entry, oldWorld);
                 }
@@ -488,57 +643,61 @@ public final class OutlineServerManager {
         }
 
         private void syncEntityViewers(Entity entity, EntityEntry entry) {
-            for (ServerPlayerEntity player : entityViewers(entity)) {
-                send(player, entry.target, entry.effective(player.getUuid()));
+            for (ServerPlayer player : entityViewers(entity)) {
+                send(player, entry, entry.effective(player.getUUID()));
             }
         }
 
-        private void syncEntityWorld(ServerWorld world, EntityEntry entry) {
-            for (ServerPlayerEntity player : PlayerLookup.world(world)) {
-                send(player, entry.target, entry.effective(player.getUuid()));
+        private void syncEntityWorld(ServerLevel world, EntityEntry entry) {
+            for (ServerPlayer player : PlayerLookup.world(world)) {
+                send(player, entry, entry.effective(player.getUUID()));
             }
         }
 
-        private void syncBlockWorld(ServerWorld world, BlockEntry entry) {
-            for (ServerPlayerEntity player : PlayerLookup.world(world)) {
-                send(player, entry.target, entry.effective(player.getUuid()));
+        private void syncBlockWorld(ServerLevel world, BlockEntry entry) {
+            for (ServerPlayer player : PlayerLookup.tracking(world, entry.target.pos())) {
+                send(player, entry, entry.effective(player.getUUID()));
             }
         }
 
-        private void clearWorldFor(ServerPlayerEntity player, ServerWorld world) {
+        private void clearWorldFor(ServerPlayer player, ServerLevel world) {
             Identifier dimension = dimension(world);
-            UUID viewer = player.getUuid();
+            UUID viewer = player.getUUID();
             for (EntityEntry entry : entityEntries.values()) {
                 if (entry.target.dimension().equals(dimension) && entry.effective(viewer) != null) {
-                    send(player, entry.target, null);
+                    send(player, entry, null);
+                    entry.sentOutlines.remove(viewer);
                 }
             }
             for (BlockEntry entry : blockEntries.values()) {
                 if (entry.target.dimension().equals(dimension) && entry.effective(viewer) != null) {
-                    send(player, entry.target, null);
+                    send(player, entry, null);
+                    entry.sentStyles.remove(viewer);
                 }
             }
         }
 
-        private void clearEntityFromWorld(EntityEntry entry, ServerWorld world) {
-            for (ServerPlayerEntity player : PlayerLookup.world(world)) {
-                if (entry.effective(player.getUuid()) != null) {
-                    send(player, entry.target, null);
+        private void clearEntityFromWorld(EntityEntry entry, ServerLevel world) {
+            for (ServerPlayer player : PlayerLookup.world(world)) {
+                if (entry.effective(player.getUUID()) != null) {
+                    send(player, entry, null);
+                    entry.sentOutlines.remove(player.getUUID());
                 }
             }
         }
 
-        private void clearBlockFromWorld(BlockEntry entry, ServerWorld world) {
-            for (ServerPlayerEntity player : PlayerLookup.world(world)) {
-                if (entry.effective(player.getUuid()) != null) {
-                    send(player, entry.target, null);
+        private void clearBlockFromWorld(BlockEntry entry, ServerLevel world) {
+            for (ServerPlayer player : PlayerLookup.world(world)) {
+                if (entry.effective(player.getUUID()) != null) {
+                    send(player, entry, null);
+                    entry.sentStyles.remove(player.getUUID());
                 }
             }
         }
 
-        private Collection<ServerPlayerEntity> entityViewers(Entity entity) {
-            Set<ServerPlayerEntity> players = new LinkedHashSet<>(PlayerLookup.tracking(entity));
-            if (entity instanceof ServerPlayerEntity player) {
+        private Collection<ServerPlayer> entityViewers(Entity entity) {
+            Set<ServerPlayer> players = new LinkedHashSet<>(PlayerLookup.tracking(entity));
+            if (entity instanceof ServerPlayer player) {
                 players.add(player);
             }
             return players;
@@ -557,39 +716,41 @@ public final class OutlineServerManager {
         }
 
         @Nullable
-        private ServerWorld world(Identifier dimension) {
-            RegistryKey<World> key = RegistryKey.of(RegistryKeys.WORLD, dimension);
-            return server.getWorld(key);
+        private ServerLevel world(Identifier dimension) {
+            ResourceKey<Level> key = ResourceKey.create(Registries.DIMENSION, dimension);
+            return server.getLevel(key);
         }
 
-        private static void send(
-                ServerPlayerEntity player,
-                EntityTarget target,
-                @Nullable OutlineStyle style
-        ) {
+        private void send(ServerPlayer player, EntityEntry entry, @Nullable EntityOutline outline) {
+            UUID viewer = player.getUUID();
+            if (entry.sentOutlines.containsKey(viewer) && Objects.equals(entry.sentOutlines.get(viewer), outline)) {
+                return;
+            }
             if (ServerPlayNetworking.canSend(player, EntityOutlineUpdateS2CPacket.ID)) {
                 ServerPlayNetworking.send(
                         player,
                         new EntityOutlineUpdateS2CPacket(
-                                target.dimension(),
-                                target.entityId(),
-                                target.entityUuid(),
-                                style
+                                entry.target.dimension(),
+                                entry.target.entityId(),
+                                entry.target.entityUuid(),
+                                outline
                         )
                 );
+                entry.sentOutlines.put(viewer, outline);
             }
         }
 
-        private static void send(
-                ServerPlayerEntity player,
-                BlockTarget target,
-                @Nullable OutlineStyle style
-        ) {
+        private void send(ServerPlayer player, BlockEntry entry, @Nullable OutlineStyle style) {
+            UUID viewer = player.getUUID();
+            if (entry.sentStyles.containsKey(viewer) && Objects.equals(entry.sentStyles.get(viewer), style)) {
+                return;
+            }
             if (ServerPlayNetworking.canSend(player, BlockEntityOutlineUpdateS2CPacket.ID)) {
                 ServerPlayNetworking.send(
                         player,
-                        new BlockEntityOutlineUpdateS2CPacket(target.dimension(), target.pos(), style)
+                        new BlockEntityOutlineUpdateS2CPacket(entry.target.dimension(), entry.target.pos(), style)
                 );
+                entry.sentStyles.put(viewer, style);
             }
         }
     }
@@ -598,6 +759,7 @@ public final class OutlineServerManager {
         @Nullable
         OutlineStyle global;
         final Map<UUID, OutlineStyle> viewerStyles = new HashMap<>();
+        final Map<UUID, OutlineStyle> sentStyles = new HashMap<>();
 
         @Nullable
         final OutlineStyle effective(UUID viewer) {
@@ -610,11 +772,25 @@ public final class OutlineServerManager {
         }
     }
 
-    private static final class EntityEntry extends Entry {
+    private static final class EntityEntry {
         EntityTarget target;
+        @Nullable
+        EntityOutline global;
+        final Map<UUID, EntityOutline> viewerOutlines = new HashMap<>();
+        final Map<UUID, EntityOutline> sentOutlines = new HashMap<>();
 
         EntityEntry(EntityTarget target) {
             this.target = target;
+        }
+
+        @Nullable
+        EntityOutline effective(UUID viewer) {
+            EntityOutline viewerOutline = viewerOutlines.get(viewer);
+            return viewerOutline == null ? global : viewerOutline;
+        }
+
+        boolean isEmpty() {
+            return global == null && viewerOutlines.isEmpty();
         }
     }
 
@@ -634,29 +810,36 @@ public final class OutlineServerManager {
 
         static EntityTarget of(Entity entity) {
             return new EntityTarget(
-                    OutlineServerManager.dimension(entity.getEntityWorld()),
+                    OutlineServerManager.dimension(entity.level()),
                     entity.getId(),
-                    entity.getUuid()
+                    entity.getUUID()
             );
         }
 
-        static EntityTarget of(Entity entity, ServerWorld world) {
-            return new EntityTarget(OutlineServerManager.dimension(world), entity.getId(), entity.getUuid());
+        static EntityTarget of(Entity entity, ServerLevel world) {
+            return new EntityTarget(OutlineServerManager.dimension(world), entity.getId(), entity.getUUID());
         }
     }
 
     private record BlockTarget(Identifier dimension, BlockPos pos) {
         BlockTarget {
             Objects.requireNonNull(dimension, "dimension");
-            pos = Objects.requireNonNull(pos, "pos").toImmutable();
+            pos = Objects.requireNonNull(pos, "pos").immutable();
         }
 
-        static BlockTarget of(BlockEntity blockEntity, ServerWorld world) {
-            return new BlockTarget(OutlineServerManager.dimension(world), blockEntity.getPos());
+        static BlockTarget of(BlockEntity blockEntity, ServerLevel world) {
+            return new BlockTarget(OutlineServerManager.dimension(world), blockEntity.getBlockPos());
         }
     }
 
-    private static Identifier dimension(World world) {
-        return world.getRegistryKey().getValue();
+    private static Identifier dimension(Level world) {
+        return world.dimension().
+//? if <1.21.11 {
+/*
+                location()
+*///?} else {
+                identifier()
+//?}
+                ;
     }
 }

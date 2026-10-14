@@ -2,10 +2,14 @@ package moth.butterflyapi.client;
 
 import moth.butterflyapi.plush.ButterflyPlushes;
 import moth.butterflyapi.plush.PlushBlockEntityRenderer;
+//? if >=1.21.11 && <26.1 {
 import net.fabricmc.fabric.api.client.rendering.v1.BlockRenderLayerMap;
-import net.minecraft.block.Block;
-import net.minecraft.client.render.BlockRenderLayer;
-import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
+//?}
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderers;
+//? if >=1.21.11 && <26.1 {
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+//?}
+import net.minecraft.world.level.block.Block;
 
 public final class PlushClientBootstrap {
     private static boolean initialized;
@@ -23,17 +27,30 @@ public final class PlushClientBootstrap {
             return;
         }
 
-        BlockEntityRendererFactories.register(
+        BlockEntityRenderers.register(
                 ButterflyPlushes.blockEntityType(),
                 context -> new PlushBlockEntityRenderer(context)
         );
 
+//? if <1.21.11 {
+/*
         Block[] blocks = ButterflyPlushes.all().stream()
                 .map(plush -> plush.block())
                 .toArray(Block[]::new);
         if (blocks.length > 0) {
-            BlockRenderLayerMap.putBlocks(BlockRenderLayer.CUTOUT, blocks);
+            net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlocks(
+                    net.minecraft.client.renderer.RenderType.cutout(),
+                    blocks
+            );
         }
+*///?} else if <26.1 {
+        Block[] blocks = ButterflyPlushes.all().stream()
+                .map(plush -> plush.block())
+                .toArray(Block[]::new);
+        if (blocks.length > 0) {
+            BlockRenderLayerMap.putBlocks(ChunkSectionLayer.CUTOUT, blocks);
+        }
+//?}
 
         initialized = true;
     }

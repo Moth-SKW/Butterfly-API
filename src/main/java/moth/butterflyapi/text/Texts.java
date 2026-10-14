@@ -1,9 +1,11 @@
 package moth.butterflyapi.text;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.Identifier;
+import java.util.Objects;
+import java.util.function.Consumer;
 
 public final class Texts {
     private Texts() {
@@ -17,23 +19,45 @@ public final class Texts {
         return builder().text(text);
     }
 
-    public static TextBuilder builder(Text text) {
+    public static TextBuilder builder(Component text) {
         return builder().append(text);
     }
 
-    public static MutableText literal(String text) {
-        return Text.literal(text);
+    public static MutableComponent of(String text) {
+        return literal(text);
     }
 
-    public static MutableText translatable(String translationKey, Object... args) {
-        return Text.translatable(translationKey, args);
+    public static MutableComponent of(String text, Consumer<TextBuilder> configuration) {
+        TextBuilder builder = builder(text);
+        Objects.requireNonNull(configuration, "configuration").accept(builder);
+        return builder.build();
     }
 
-    public static MutableText color(String text, String hexColor) {
+    public static MutableComponent of(Component text, Consumer<TextBuilder> configuration) {
+        TextBuilder builder = builder(text);
+        Objects.requireNonNull(configuration, "configuration").accept(builder);
+        return builder.build();
+    }
+
+    public static MutableComponent compose(Consumer<TextBuilder> composition) {
+        TextBuilder builder = builder();
+        Objects.requireNonNull(composition, "composition").accept(builder);
+        return builder.build();
+    }
+
+    public static MutableComponent literal(String text) {
+        return Component.literal(text);
+    }
+
+    public static MutableComponent translatable(String translationKey, Object... args) {
+        return Component.translatable(translationKey, args);
+    }
+
+    public static MutableComponent color(String text, String hexColor) {
         return TextColors.literal(text, hexColor);
     }
 
-    public static MutableText color(Text text, String hexColor) {
+    public static MutableComponent color(Component text, String hexColor) {
         return TextColors.color(text, hexColor);
     }
 
@@ -57,19 +81,19 @@ public final class Texts {
         return TextRenderStyles.clear(style);
     }
 
-    public static MutableText shaky(String text) {
+    public static MutableComponent shaky(String text) {
         return TextEffects.shaky(text);
     }
 
-    public static MutableText shaky(String text, TextShakingOptions options) {
+    public static MutableComponent shaky(String text, TextShakingOptions options) {
         return TextEffects.shaky(text, options);
     }
 
-    public static MutableText shaky(Text text) {
+    public static MutableComponent shaky(Component text) {
         return TextEffects.shaky(text);
     }
 
-    public static MutableText shaky(Text text, TextShakingOptions options) {
+    public static MutableComponent shaky(Component text, TextShakingOptions options) {
         return TextEffects.shaky(text, options);
     }
 
@@ -81,7 +105,7 @@ public final class Texts {
         return TextEffects.shaky(style, options);
     }
 
-    public static MutableText font(Text text, Identifier font) {
+    public static MutableComponent font(Component text, Identifier font) {
         return TextFonts.font(text, font);
     }
 

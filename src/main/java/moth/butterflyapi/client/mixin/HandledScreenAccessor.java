@@ -1,20 +1,23 @@
 package moth.butterflyapi.client.mixin;
 
-import net.minecraft.client.gui.screen.ingame.HandledScreen;
-import net.minecraft.screen.slot.Slot;
+//? if >=1.21.1 {
+
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.world.inventory.Slot;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(HandledScreen.class)
+@Mixin(AbstractContainerScreen.class)
 public interface HandledScreenAccessor {
-    @Accessor("x")
+    @Accessor("leftPos")
     int butterflyApi$getX();
 
-    @Accessor("y")
+    @Accessor("topPos")
     int butterflyApi$getY();
 
-    @Accessor("focusedSlot")
+    @Accessor("hoveredSlot")
     @Nullable
     Slot butterflyApi$getFocusedSlot();
 }
+//?}

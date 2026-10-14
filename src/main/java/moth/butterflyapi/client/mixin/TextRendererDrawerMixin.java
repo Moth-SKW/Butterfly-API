@@ -1,5 +1,6 @@
 package moth.butterflyapi.client.mixin;
 
+//? if >=1.21.11 {
 import moth.butterflyapi.client.text.internal.OffsetGlyphRect;
 import moth.butterflyapi.client.text.internal.TextRenderGlyphRect;
 import moth.butterflyapi.text.TextEffect;
@@ -10,33 +11,52 @@ import moth.butterflyapi.text.TextRenderOffset;
 import moth.butterflyapi.text.TextRenderStyle;
 import moth.butterflyapi.text.TextRenderStyles;
 import moth.butterflyapi.text.TextShadow;
-import net.minecraft.client.font.BakedGlyph;
-import net.minecraft.client.font.TextDrawable;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.text.Style;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.font.TextRenderable;
+import net.minecraft.client.gui.font.glyphs.BakedGlyph;
+import net.minecraft.network.chat.Style;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 
-@Mixin(targets = "net.minecraft.client.font.TextRenderer$Drawer")
+@Mixin(targets = "net.minecraft.client.gui.Font$PreparedTextBuilder")
 public abstract class TextRendererDrawerMixin {
     @Shadow
     @Final
-    private List<TextDrawable.DrawnGlyphRect> drawnGlyphs;
+    private List<TextRenderable.Styled> glyphs;
+    private final Map<TextRenderStyle, TextRenderBounds> butterflyApi$clusterBounds = new HashMap<>();
+
+    @Inject(method = "visit", at = @At("HEAD"))
+    private void butterflyApi$cacheClusterBounds(CallbackInfo ci) {
+        butterflyApi$clusterBounds.clear();
+        for (TextRenderable.Styled glyph : glyphs) {
+            TextRenderStyle renderStyle = glyph instanceof TextRenderGlyphRect styledGlyph
+                    ? styledGlyph.renderStyle()
+                    : TextRenderStyles.get(glyph.style());
+            if (renderStyle == null) {
+                continue;
+            }
+            TextRenderBounds bounds = TextRenderGlyphRect.boundsOf(glyph);
+            butterflyApi$clusterBounds.merge(renderStyle, bounds, TextRenderBounds::union);
+        }
+    }
 
     @Redirect(
-            method = "accept(ILnet/minecraft/text/Style;Lnet/minecraft/client/font/BakedGlyph;)Z",
+            method = "accept(ILnet/minecraft/network/chat/Style;Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;)Z",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/font/BakedGlyph;create(FFIILnet/minecraft/text/Style;FF)Lnet/minecraft/client/font/TextDrawable$DrawnGlyphRect;"
+                    target = "Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;createGlyph(FFIILnet/minecraft/network/chat/Style;FF)Lnet/minecraft/client/gui/font/TextRenderable$Styled;"
             )
     )
-    private TextDrawable.DrawnGlyphRect butterflyApi$createStyledGlyph(
+    private TextRenderable.Styled butterflyApi$createStyledGlyph(
             BakedGlyph bakedGlyph,
             float x,
             float y,
@@ -48,9 +68,9 @@ public abstract class TextRendererDrawerMixin {
     ) {
         TextRenderStyle renderStyle = TextRenderStyles.get(style);
         if (renderStyle == null) {
-            return bakedGlyph.create(x, y, color, shadowColor, style, boldOffset, shadowOffset);
+            return bakedGlyph.createGlyph(x, y, color, shadowColor, style, boldOffset, shadowOffset);
         }
-        TextDrawable.DrawnGlyphRect textGlyph = bakedGlyph.create(x, y, 0xFFFFFFFF, 0, style, boldOffset, 0.0F);
+        TextRenderable.Styled textGlyph = bakedGlyph.createGlyph(x, y, 0xFFFFFFFF, 0, style, boldOffset, 0.0F);
         if (textGlyph == null) {
             return null;
         }
@@ -59,69 +79,60 @@ public abstract class TextRendererDrawerMixin {
         boolean shouldDrawShadow = shadow.draws()
                 && shadow.opacity() > 0.0F
                 && (shadowColor != 0 || customShadow || shadow.color() != null);
-        TextDrawable.DrawnGlyphRect shadowGlyph = null;
+        TextRenderable.Styled shadowGlyph = null;
         if (shouldDrawShadow) {
             float shadowX = x + (customShadow ? shadow.offsetX() : shadowOffset);
             float shadowY = y + (customShadow ? shadow.offsetY() : shadowOffset);
-            shadowGlyph = bakedGlyph.create(shadowX, shadowY, 0xFFFFFFFF, 0, style, boldOffset, 0.0F);
+            shadowGlyph = bakedGlyph.createGlyph(shadowX, shadowY, 0xFFFFFFFF, 0, style, boldOffset, 0.0F);
         }
         return new TextRenderGlyphRect(textGlyph, shadowGlyph, style, color, shadowColor, renderStyle);
     }
 
     @Redirect(
-            method = "draw",
+            method = "visit",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/font/TextRenderer$GlyphDrawer;drawGlyph(Lnet/minecraft/client/font/TextDrawable$DrawnGlyphRect;)V"
+                    target = "Lnet/minecraft/client/gui/Font$GlyphVisitor;acceptGlyph(Lnet/minecraft/client/gui/font/TextRenderable$Styled;)V"
             )
     )
-    private void butterflyApi$drawTextEffect(TextRenderer.GlyphDrawer drawer, TextDrawable.DrawnGlyphRect glyph) {
+    private void butterflyApi$drawTextEffect(Font.GlyphVisitor drawer, TextRenderable.Styled glyph) {
         TextRenderStyle renderStyle = glyph instanceof TextRenderGlyphRect styledGlyph ? styledGlyph.renderStyle() : TextRenderStyles.get(glyph.style());
         TextEffect effect = TextEffects.effect(glyph.style());
         if (renderStyle == null && effect == null) {
-            drawer.drawGlyph(glyph);
+            drawer.acceptGlyph(glyph);
             return;
         }
         TextRenderOffset offset = butterflyApi$effectOffset(glyph, effect);
         if (glyph instanceof TextRenderGlyphRect styledGlyph) {
-            drawer.drawGlyph(styledGlyph.withRenderContext(butterflyApi$clusterBounds(glyph, renderStyle), offset));
+            drawer.acceptGlyph(styledGlyph.withRenderContext(butterflyApi$clusterBounds(glyph, renderStyle), offset));
             return;
         }
         if (offset.isZero()) {
-            drawer.drawGlyph(glyph);
+            drawer.acceptGlyph(glyph);
             return;
         }
-        drawer.drawGlyph(new OffsetGlyphRect(glyph, offset.x(), offset.y()));
+        drawer.acceptGlyph(new OffsetGlyphRect(glyph, offset.x(), offset.y()));
     }
 
-    private TextRenderOffset butterflyApi$effectOffset(TextDrawable.DrawnGlyphRect glyph, TextEffect effect) {
-        int glyphKey = Math.round(glyph.getLeft() * 31.0F + glyph.getTop() * 17.0F);
+    private TextRenderOffset butterflyApi$effectOffset(TextRenderable.Styled glyph, TextEffect effect) {
+        int glyphKey = Math.round(glyph.activeLeft() * 31.0F + glyph.activeTop() * 17.0F);
         long frameTime = System.nanoTime() / 16_666_667L;
         if (effect == null) {
             return TextRenderOffset.ZERO;
         }
         return effect.offset(new TextEffectRenderContext(
-                glyph.getLeft(),
-                glyph.getTop(),
-                glyph.getRight(),
-                glyph.getBottom(),
+                glyph.activeLeft(),
+                glyph.activeTop(),
+                glyph.activeRight(),
+                glyph.activeBottom(),
                 glyphKey,
                 frameTime
         ));
     }
 
-    private TextRenderBounds butterflyApi$clusterBounds(TextDrawable.DrawnGlyphRect glyph, TextRenderStyle renderStyle) {
-        TextRenderBounds bounds = null;
-        for (TextDrawable.DrawnGlyphRect candidate : drawnGlyphs) {
-            TextRenderStyle candidateStyle = candidate instanceof TextRenderGlyphRect styledGlyph
-                    ? styledGlyph.renderStyle()
-                    : TextRenderStyles.get(candidate.style());
-            if (!Objects.equals(candidateStyle, renderStyle)) {
-                continue;
-            }
-            TextRenderBounds candidateBounds = TextRenderGlyphRect.boundsOf(candidate);
-            bounds = bounds == null ? candidateBounds : bounds.union(candidateBounds);
-        }
+    private TextRenderBounds butterflyApi$clusterBounds(TextRenderable.Styled glyph, TextRenderStyle renderStyle) {
+        TextRenderBounds bounds = butterflyApi$clusterBounds.get(renderStyle);
         return bounds == null ? TextRenderGlyphRect.boundsOf(glyph) : bounds;
     }
 }
+//?}

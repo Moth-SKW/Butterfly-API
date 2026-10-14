@@ -1,10 +1,11 @@
 package moth.butterflyapi.mixin;
 
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.Style;
-import net.minecraft.text.StyleSpriteSource;
-import net.minecraft.text.TextColor;
+//? if >=1.21.11 {
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.FontDescription;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
@@ -23,7 +24,7 @@ public interface StyleTextEffectAccessor {
             ClickEvent clickEvent,
             HoverEvent hoverEvent,
             String insertion,
-            StyleSpriteSource font
+            FontDescription font
     ) {
         throw new AssertionError();
     }
@@ -59,5 +60,6 @@ public interface StyleTextEffectAccessor {
     String butterflyApi$getInsertion();
 
     @Accessor("font")
-    StyleSpriteSource butterflyApi$getFont();
+    FontDescription butterflyApi$getFont();
 }
+//?}

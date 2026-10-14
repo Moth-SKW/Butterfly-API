@@ -1,45 +1,51 @@
 package moth.butterflyapi.text;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.ClickEvent;
-import net.minecraft.text.HoverEvent;
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
 
 public final class TextBuilder {
-    private final MutableText root = Text.empty();
+    private final MutableComponent root = Component.empty();
     private Style style = Style.EMPTY;
-    private MutableText last;
+    private MutableComponent last;
     private int lastIndex = -1;
 
     TextBuilder() {
     }
 
     public TextBuilder text(String text) {
-        return append(Text.literal(Objects.requireNonNull(text, "text")));
+        return append(Component.literal(Objects.requireNonNull(text, "text")));
     }
+
+//? if <1.21.11 {
+/*
+    public TextBuilder drawString(String text) {
+        return text(text);
+    }
+*///?}
 
     public TextBuilder literal(String text) {
         return text(text);
     }
 
     public TextBuilder translatable(String translationKey, Object... args) {
-        return append(Text.translatable(Objects.requireNonNull(translationKey, "translationKey"), args));
+        return append(Component.translatable(Objects.requireNonNull(translationKey, "translationKey"), args));
     }
 
-    public TextBuilder append(Text text) {
-        MutableText segment = Objects.requireNonNull(text, "text").copy().fillStyle(style);
+    public TextBuilder append(Component text) {
+        MutableComponent segment = Objects.requireNonNull(text, "text").copy().withStyle(style);
         root.append(segment);
         last = segment;
         lastIndex = root.getSiblings().size() - 1;
@@ -58,7 +64,7 @@ public final class TextBuilder {
         return text(text);
     }
 
-    public TextBuilder line(Text text) {
+    public TextBuilder line(Component text) {
         if (!isEmpty()) {
             newline();
         }
@@ -90,10 +96,15 @@ public final class TextBuilder {
     }
 
     public TextBuilder shadow(int argb) {
+//? if <1.21.11 {
+/*
+        return renderStyle(renderStyle -> renderStyle.withShadow(renderStyle.shadow().withColor(argb)));
+*///?} else {
         return style(style -> TextRenderStyles.update(
                 style.withShadowColor(argb),
                 renderStyle -> renderStyle.withShadow(renderStyle.shadow().withColor(argb))
         ));
+//?}
     }
 
     public TextBuilder shadowColor(int argb) {
@@ -105,10 +116,15 @@ public final class TextBuilder {
     }
 
     public TextBuilder noShadow() {
+//? if <1.21.11 {
+/*
+        return renderStyle(renderStyle -> renderStyle.withShadow(TextShadow.disabled()));
+*///?} else {
         return style(style -> TextRenderStyles.update(
                 style.withoutShadow(),
                 renderStyle -> renderStyle.withShadow(TextShadow.disabled())
         ));
+//?}
     }
 
     public TextBuilder shadow(TextShadow shadow) {
@@ -149,6 +165,10 @@ public final class TextBuilder {
 
     public TextBuilder gradientHorizontal(String... colors) {
         return gradient(TextGradient.horizontal(colors));
+    }
+
+    public TextBuilder gradient(String firstColor, String secondColor) {
+        return gradientHorizontal(firstColor, secondColor);
     }
 
     public TextBuilder gradientVertical(int... colors) {
@@ -248,7 +268,7 @@ public final class TextBuilder {
     }
 
     public TextBuilder underline(boolean enabled) {
-        return style(style -> style.withUnderline(enabled));
+        return style(style -> style.withUnderlined(enabled));
     }
 
     public TextBuilder strikethrough() {
@@ -267,12 +287,12 @@ public final class TextBuilder {
         return style(style -> style.withObfuscated(enabled));
     }
 
-    public TextBuilder formatted(Formatting formatting) {
-        return style(style -> style.withFormatting(Objects.requireNonNull(formatting, "formatting")));
+    public TextBuilder formatted(ChatFormatting formatting) {
+        return style(style -> style.applyFormat(Objects.requireNonNull(formatting, "formatting")));
     }
 
-    public TextBuilder formatted(Formatting... formatting) {
-        return style(style -> style.withFormatting(Objects.requireNonNull(formatting, "formatting")));
+    public TextBuilder formatted(ChatFormatting... formatting) {
+        return style(style -> style.applyFormats(Objects.requireNonNull(formatting, "formatting")));
     }
 
     public TextBuilder font(Identifier font) {
@@ -308,19 +328,39 @@ public final class TextBuilder {
     }
 
     public TextBuilder openUrl(URI uri) {
+//? if <1.21.11 {
+/*
+        return click(new ClickEvent(ClickEvent.Action.OPEN_URL, Objects.requireNonNull(uri, "uri").toString()));
+*///?} else {
         return click(new ClickEvent.OpenUrl(Objects.requireNonNull(uri, "uri")));
+//?}
     }
 
     public TextBuilder runCommand(String command) {
+//? if <1.21.11 {
+/*
+        return click(new ClickEvent(ClickEvent.Action.RUN_COMMAND, Objects.requireNonNull(command, "command")));
+*///?} else {
         return click(new ClickEvent.RunCommand(Objects.requireNonNull(command, "command")));
+//?}
     }
 
     public TextBuilder suggestCommand(String command) {
+//? if <1.21.11 {
+/*
+        return click(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, Objects.requireNonNull(command, "command")));
+*///?} else {
         return click(new ClickEvent.SuggestCommand(Objects.requireNonNull(command, "command")));
+//?}
     }
 
     public TextBuilder copyToClipboard(String value) {
+//? if <1.21.11 {
+/*
+        return click(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, Objects.requireNonNull(value, "value")));
+*///?} else {
         return click(new ClickEvent.CopyToClipboard(Objects.requireNonNull(value, "value")));
+//?}
     }
 
     public TextBuilder hover(HoverEvent event) {
@@ -328,15 +368,28 @@ public final class TextBuilder {
     }
 
     public TextBuilder hover(String text) {
-        return hover(Text.literal(Objects.requireNonNull(text, "text")));
+        return hover(Component.literal(Objects.requireNonNull(text, "text")));
     }
 
-    public TextBuilder hover(Text text) {
+    public TextBuilder hover(Component text) {
+//? if <1.21.11 {
+/*
+        return hover(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Objects.requireNonNull(text, "text")));
+*///?} else {
         return hover(new HoverEvent.ShowText(Objects.requireNonNull(text, "text")));
+//?}
     }
 
     public TextBuilder hover(ItemStack stack) {
+//? if <1.21.11 {
+/*
+        return hover(new HoverEvent(
+                HoverEvent.Action.SHOW_ITEM,
+                new HoverEvent.ItemStackInfo(Objects.requireNonNull(stack, "stack").copy())
+        ));
+*///?} else {
         return hover(new HoverEvent.ShowItem(Objects.requireNonNull(stack, "stack").copy()));
+//?}
     }
 
     public TextBuilder insertion(String insertion) {
@@ -358,7 +411,7 @@ public final class TextBuilder {
         Objects.requireNonNull(updater, "updater");
         style = Objects.requireNonNull(updater.apply(style), "style");
         if (last != null) {
-            last.styled(updater);
+            last.withStyle(updater);
         }
         return this;
     }
@@ -367,16 +420,16 @@ public final class TextBuilder {
         return style(style -> TextRenderStyles.update(style, updater));
     }
 
-    public MutableText build() {
+    public MutableComponent build() {
         return root.copy();
     }
 
-    public List<Text> buildLines() {
+    public List<Component> buildLines() {
         if (isEmpty()) {
             return List.of();
         }
-        List<Text> lines = new ArrayList<>();
-        MutableText[] current = {Text.empty()};
+        List<Component> lines = new ArrayList<>();
+        MutableComponent[] current = {Component.empty()};
         lines.add(current[0]);
         build().visit((partStyle, string) -> {
             int start = 0;
@@ -385,7 +438,7 @@ public final class TextBuilder {
                     continue;
                 }
                 appendLinePart(current[0], string.substring(start, index), partStyle);
-                current[0] = Text.empty();
+                current[0] = Component.empty();
                 lines.add(current[0]);
                 start = index + 1;
             }
@@ -399,9 +452,9 @@ public final class TextBuilder {
         return root.getSiblings().isEmpty();
     }
 
-    private static void appendLinePart(MutableText line, String text, Style style) {
+    private static void appendLinePart(MutableComponent line, String text, Style style) {
         if (!text.isEmpty()) {
-            line.append(Text.literal(text).setStyle(style));
+            line.append(Component.literal(text).setStyle(style));
         }
     }
 
@@ -409,12 +462,12 @@ public final class TextBuilder {
         if (last == null || TextEffects.effect(last.getStyle()) == null) {
             return this;
         }
-        String literal = last.getLiteralString();
+        String literal = last.tryCollapseToString();
         if (literal == null || literal.startsWith(TextEffects.SHAKY_FORMATTING)) {
             return this;
         }
-        MutableText marked = Text.literal(TextEffects.SHAKY_FORMATTING + literal).setStyle(last.getStyle());
-        for (Text sibling : last.getSiblings()) {
+        MutableComponent marked = Component.literal(TextEffects.SHAKY_FORMATTING + literal).setStyle(last.getStyle());
+        for (Component sibling : last.getSiblings()) {
             marked.append(sibling.copy());
         }
         root.getSiblings().set(lastIndex, marked);

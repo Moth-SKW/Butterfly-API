@@ -1,13 +1,14 @@
 #version 330
+${shader_preamble}
 
-#moj_import <minecraft:dynamictransforms.glsl>
+${shader_dynamic_transforms}
 
 uniform sampler2D Sampler0;
 
-in vec4 vertexColor;
-in vec2 texCoord0;
+${shader_vertex_color_input} vec4 vertexColor;
+${shader_texture_input} vec2 texCoord0;
 
-out vec4 fragColor;
+${shader_output} vec4 fragColor;
 
 void main() {
     vec4 color = texture(Sampler0, texCoord0);

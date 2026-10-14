@@ -1,10 +1,10 @@
 package moth.butterflyapi.itemgroup;
 
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
 import java.util.function.Consumer;
+import net.minecraft.resources.Identifier;
 
 public final class TabEntryStyle {
     private static final TabEntryStyle DEFAULT = new TabEntryStyle(null);

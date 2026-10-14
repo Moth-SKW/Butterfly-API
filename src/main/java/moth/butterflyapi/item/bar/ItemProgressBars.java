@@ -1,15 +1,15 @@
 package moth.butterflyapi.item.bar;
 
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemStack;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.ToDoubleFunction;
+import moth.butterflyapi.item.ItemProgressBarDefinition;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ItemLike;
 
 public final class ItemProgressBars {
     private static final Map<Item, ItemProgressBarProvider> PROVIDERS = new ConcurrentHashMap<>();
@@ -17,30 +17,38 @@ public final class ItemProgressBars {
     private ItemProgressBars() {
     }
 
-    public static void register(ItemConvertible item, ItemProgressBarProvider provider) {
+    public static void register(ItemLike item, ItemProgressBarProvider provider) {
         PROVIDERS.put(Objects.requireNonNull(item, "item").asItem(), Objects.requireNonNull(provider, "provider"));
     }
 
-    public static void register(ItemConvertible item, int color, ToDoubleFunction<ItemStack> progress) {
+    public static void register(ItemLike item, ItemProgressBarDefinition definition) {
+        ItemProgressBarDefinition checkedDefinition = Objects.requireNonNull(definition, "definition");
+        register(item, stack -> checkedDefinition.isVisible(stack)
+                ? List.of(checkedDefinition.bar(stack))
+                : Collections.emptyList());
+    }
+
+    public static ItemProgressBarDefinition.Builder definition(ToDoubleFunction<ItemStack> progress) {
+        return ItemProgressBarDefinition.builder(progress);
+    }
+
+    public static void register(ItemLike item, int color, ToDoubleFunction<ItemStack> progress) {
         register(item, color, true, progress);
     }
 
-    public static void register(ItemConvertible item, int color, boolean pixelSnap, ToDoubleFunction<ItemStack> progress) {
-        Objects.requireNonNull(progress, "progress");
-        register(item, stack -> List.of(ItemProgressBar.of(progress.applyAsDouble(stack), color, pixelSnap)));
+    public static void register(ItemLike item, int color, boolean pixelSnap, ToDoubleFunction<ItemStack> progress) {
+        register(item, definition(progress).color(color).pixelSnap(pixelSnap).build());
     }
 
-    public static void registerLayered(ItemConvertible item, boolean pixelSnap, ToDoubleFunction<ItemStack> progress, int... colors) {
-        Objects.requireNonNull(progress, "progress");
-        ItemProgressBar.layered(0.0D, pixelSnap, colors);
-        register(item, stack -> List.of(ItemProgressBar.layered(progress.applyAsDouble(stack), pixelSnap, colors)));
+    public static void registerLayered(ItemLike item, boolean pixelSnap, ToDoubleFunction<ItemStack> progress, int... colors) {
+        register(item, definition(progress).colors(colors).pixelSnap(pixelSnap).build());
     }
 
-    public static boolean isRegistered(ItemConvertible item) {
+    public static boolean isRegistered(ItemLike item) {
         return PROVIDERS.containsKey(Objects.requireNonNull(item, "item").asItem());
     }
 
-    public static void unregister(ItemConvertible item) {
+    public static void unregister(ItemLike item) {
         PROVIDERS.remove(Objects.requireNonNull(item, "item").asItem());
     }
 

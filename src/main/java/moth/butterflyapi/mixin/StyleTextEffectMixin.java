@@ -1,11 +1,12 @@
 package moth.butterflyapi.mixin;
 
+//? if >=1.21.11 {
 import moth.butterflyapi.text.TextEffect;
 import moth.butterflyapi.text.TextRenderStyle;
 import moth.butterflyapi.text.internal.TextEffectCarrier;
 import moth.butterflyapi.text.internal.TextRenderStyleCarrier;
-import net.minecraft.text.Style;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -46,22 +47,22 @@ public abstract class StyleTextEffectMixin implements TextEffectCarrier, TextRen
 
     @Inject(
             method = {
-                    "withColor(Lnet/minecraft/text/TextColor;)Lnet/minecraft/text/Style;",
-                    "withColor(Lnet/minecraft/util/Formatting;)Lnet/minecraft/text/Style;",
-                    "withColor(I)Lnet/minecraft/text/Style;",
-                    "withShadowColor(I)Lnet/minecraft/text/Style;",
-                    "withoutShadow()Lnet/minecraft/text/Style;",
-                    "withBold(Ljava/lang/Boolean;)Lnet/minecraft/text/Style;",
-                    "withItalic(Ljava/lang/Boolean;)Lnet/minecraft/text/Style;",
-                    "withUnderline(Ljava/lang/Boolean;)Lnet/minecraft/text/Style;",
-                    "withStrikethrough(Ljava/lang/Boolean;)Lnet/minecraft/text/Style;",
-                    "withObfuscated(Ljava/lang/Boolean;)Lnet/minecraft/text/Style;",
-                    "withClickEvent(Lnet/minecraft/text/ClickEvent;)Lnet/minecraft/text/Style;",
-                    "withHoverEvent(Lnet/minecraft/text/HoverEvent;)Lnet/minecraft/text/Style;",
-                    "withInsertion(Ljava/lang/String;)Lnet/minecraft/text/Style;",
-                    "withFont(Lnet/minecraft/text/StyleSpriteSource;)Lnet/minecraft/text/Style;",
-                    "withFormatting(Lnet/minecraft/util/Formatting;)Lnet/minecraft/text/Style;",
-                    "withFormatting([Lnet/minecraft/util/Formatting;)Lnet/minecraft/text/Style;"
+                    "withColor(Lnet/minecraft/network/chat/TextColor;)Lnet/minecraft/network/chat/Style;",
+                    "withColor(Lnet/minecraft/ChatFormatting;)Lnet/minecraft/network/chat/Style;",
+                    "withColor(I)Lnet/minecraft/network/chat/Style;",
+                    "withShadowColor(I)Lnet/minecraft/network/chat/Style;",
+                    "withoutShadow()Lnet/minecraft/network/chat/Style;",
+                    "withBold(Ljava/lang/Boolean;)Lnet/minecraft/network/chat/Style;",
+                    "withItalic(Ljava/lang/Boolean;)Lnet/minecraft/network/chat/Style;",
+                    "withUnderlined(Ljava/lang/Boolean;)Lnet/minecraft/network/chat/Style;",
+                    "withStrikethrough(Ljava/lang/Boolean;)Lnet/minecraft/network/chat/Style;",
+                    "withObfuscated(Ljava/lang/Boolean;)Lnet/minecraft/network/chat/Style;",
+                    "withClickEvent(Lnet/minecraft/network/chat/ClickEvent;)Lnet/minecraft/network/chat/Style;",
+                    "withHoverEvent(Lnet/minecraft/network/chat/HoverEvent;)Lnet/minecraft/network/chat/Style;",
+                    "withInsertion(Ljava/lang/String;)Lnet/minecraft/network/chat/Style;",
+                    "withFont(Lnet/minecraft/network/chat/FontDescription;)Lnet/minecraft/network/chat/Style;",
+                    "applyFormat(Lnet/minecraft/ChatFormatting;)Lnet/minecraft/network/chat/Style;",
+                    "applyFormats([Lnet/minecraft/ChatFormatting;)Lnet/minecraft/network/chat/Style;"
             },
             at = @At("RETURN")
     )
@@ -69,14 +70,14 @@ public abstract class StyleTextEffectMixin implements TextEffectCarrier, TextRen
         butterflyApi$copyTo(cir.getReturnValue(), butterflyApi$textEffect, butterflyApi$textRenderStyle);
     }
 
-    @Inject(method = "withExclusiveFormatting", at = @At("RETURN"))
-    private void butterflyApi$copyExclusiveEffect(Formatting formatting, CallbackInfoReturnable<Style> cir) {
-        TextEffect effect = formatting == Formatting.RESET || formatting.isColor() ? null : butterflyApi$textEffect;
-        TextRenderStyle renderStyle = formatting == Formatting.RESET || formatting.isColor() ? null : butterflyApi$textRenderStyle;
+    @Inject(method = "applyLegacyFormat", at = @At("RETURN"))
+    private void butterflyApi$copyExclusiveEffect(ChatFormatting formatting, CallbackInfoReturnable<Style> cir) {
+        TextEffect effect = formatting == ChatFormatting.RESET || butterflyApi$isColor(formatting) ? null : butterflyApi$textEffect;
+        TextRenderStyle renderStyle = formatting == ChatFormatting.RESET || butterflyApi$isColor(formatting) ? null : butterflyApi$textRenderStyle;
         butterflyApi$copyTo(cir.getReturnValue(), effect, renderStyle);
     }
 
-    @Inject(method = "withParent", at = @At("RETURN"))
+    @Inject(method = "applyTo", at = @At("RETURN"))
     private void butterflyApi$inheritParentEffect(Style parent, CallbackInfoReturnable<Style> cir) {
         TextEffect effect = butterflyApi$textEffect;
         Object parentObject = parent;
@@ -100,4 +101,15 @@ public abstract class StyleTextEffectMixin implements TextEffectCarrier, TextRen
             carrier.butterflyApi$setTextRenderStyle(renderStyle);
         }
     }
+
+    @Unique
+    private static boolean butterflyApi$isColor(ChatFormatting formatting) {
+//? if >=26.2 {
+/*
+        return formatting.ordinal() <= ChatFormatting.WHITE.ordinal();
+*///?} else {
+        return formatting.isColor();
+//?}
+    }
 }
+//?}

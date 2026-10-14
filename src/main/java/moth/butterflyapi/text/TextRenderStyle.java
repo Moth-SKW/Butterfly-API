@@ -40,6 +40,9 @@ public record TextRenderStyle(
     }
 
     public static float clamp01(float value) {
+        if (Float.isNaN(value)) {
+            return 0.0F;
+        }
         return Math.max(0.0F, Math.min(1.0F, value));
     }
 }

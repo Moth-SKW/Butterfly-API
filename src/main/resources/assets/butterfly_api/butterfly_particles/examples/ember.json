@@ -1,0 +1,22 @@
+{
+  "format_version": 1,
+  "emitter": {
+    "lifetime": 1.5,
+    "emission_rate": 14,
+    "shape": "point"
+  },
+  "particle": {
+    "lifetime": [0.45, 0.8],
+    "velocity": [0.0, 0.06, 0.0],
+    "acceleration": [0.0, 0.015, 0.0],
+    "color": {
+      "start": "#FFD166FF",
+      "end": "#EF476000"
+    },
+    "size": {
+      "start": [0.25, 0.4],
+      "end": 0.05
+    },
+    "texture": "minecraft:generic_0"
+  }
+}

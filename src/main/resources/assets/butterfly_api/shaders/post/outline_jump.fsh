@@ -1,4 +1,5 @@
 #version 330
+${shader_preamble}
 
 layout(std140) uniform SamplerInfo {
     vec2 OutSize;
@@ -11,8 +12,8 @@ layout(std140) uniform JumpConfig {
 
 uniform sampler2D InSampler;
 
-in vec2 texCoord;
-out vec4 fragColor;
+${shader_post_input} vec2 texCoord;
+${shader_output} vec4 fragColor;
 
 ivec2 decodeCoordinate(vec4 encodedPixel) {
     ivec4 bytes = ivec4(round(encodedPixel * 255.0));
@@ -30,23 +31,31 @@ vec4 candidateAt(ivec2 pixel) {
     return texelFetch(InSampler, pixel, 0);
 }
 
+float squaredDistance(ivec2 first, ivec2 second) {
+    vec2 delta = vec2(first - second);
+    return dot(delta, delta);
+}
+
 void main() {
     ivec2 pixel = clamp(ivec2(texCoord * InSize), ivec2(0), ivec2(InSize) - ivec2(1));
     vec4 best = candidateAt(pixel);
     ivec2 bestCoordinate = decodeCoordinate(best);
     float bestDistance = bestCoordinate.x < 0
         ? 1.0e30
-        : distance(vec2(pixel), vec2(bestCoordinate));
+        : squaredDistance(pixel, bestCoordinate);
 
     int step = max(1, int(round(StepSize)));
     for (int y = -1; y <= 1; ++y) {
         for (int x = -1; x <= 1; ++x) {
+            if (x == 0 && y == 0) {
+                continue;
+            }
             vec4 candidate = candidateAt(pixel + ivec2(x, y) * step);
             ivec2 coordinate = decodeCoordinate(candidate);
             if (coordinate.x < 0) {
                 continue;
             }
-            float candidateDistance = distance(vec2(pixel), vec2(coordinate));
+            float candidateDistance = squaredDistance(pixel, coordinate);
             if (candidateDistance < bestDistance) {
                 best = candidate;
                 bestDistance = candidateDistance;

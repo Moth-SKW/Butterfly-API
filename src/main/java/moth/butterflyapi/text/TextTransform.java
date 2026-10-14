@@ -1,5 +1,7 @@
 package moth.butterflyapi.text;
 
+import java.util.Objects;
+
 public record TextTransform(
         float offsetX,
         float offsetY,
@@ -9,6 +11,13 @@ public record TextTransform(
         TextTransformScope scope
 ) {
     public static final TextTransform NONE = new TextTransform(0.0F, 0.0F, 0.0F, false, false, TextTransformScope.GLYPH);
+
+    public TextTransform {
+        requireFinite(offsetX, "offsetX");
+        requireFinite(offsetY, "offsetY");
+        requireFinite(rotationDegrees, "rotationDegrees");
+        scope = Objects.requireNonNull(scope, "scope");
+    }
 
     public static TextTransform glyph() {
         return NONE;
@@ -64,5 +73,11 @@ public record TextTransform(
                 && rotationDegrees == 0.0F
                 && !flippedX
                 && !flippedY;
+    }
+
+    private static void requireFinite(float value, String name) {
+        if (!Float.isFinite(value)) {
+            throw new IllegalArgumentException(name + " must be finite");
+        }
     }
 }

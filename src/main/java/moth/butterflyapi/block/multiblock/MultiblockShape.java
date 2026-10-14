@@ -1,11 +1,14 @@
 package moth.butterflyapi.block.multiblock;
 
-import net.minecraft.util.math.Direction;
-
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
+import java.util.concurrent.ConcurrentHashMap;
+import net.minecraft.core.Direction;
 
 public record MultiblockShape(int width, int height, int depth) {
+    private static final Map<MultiblockShape, List<MultiblockPart>> PARTS = new ConcurrentHashMap<>();
     public static final MultiblockShape ONE_BY_THREE_BY_ONE = new MultiblockShape(1, 3, 1);
     public static final MultiblockShape ONE_BY_FOUR_BY_ONE = new MultiblockShape(1, 4, 1);
     public static final MultiblockShape TWO_BY_TWO_BY_TWO = new MultiblockShape(2, 2, 2);
@@ -21,15 +24,23 @@ public record MultiblockShape(int width, int height, int depth) {
     }
 
     public Stream<MultiblockPart> parts() {
-        Stream.Builder<MultiblockPart> builder = Stream.builder();
-        for (int y = 0; y < height; y++) {
-            for (int z = 0; z < depth; z++) {
-                for (int x = 0; x < width; x++) {
-                    builder.add(new MultiblockPart(x, y, z));
+        return partsList().stream();
+    }
+
+    public List<MultiblockPart> partsList() {
+        return PARTS.computeIfAbsent(this, MultiblockShape::createParts);
+    }
+
+    private static List<MultiblockPart> createParts(MultiblockShape shape) {
+        java.util.ArrayList<MultiblockPart> parts = new java.util.ArrayList<>(shape.width * shape.height * shape.depth);
+        for (int y = 0; y < shape.height; y++) {
+            for (int z = 0; z < shape.depth; z++) {
+                for (int x = 0; x < shape.width; x++) {
+                    parts.add(new MultiblockPart(x, y, z));
                 }
             }
         }
-        return builder.build();
+        return List.copyOf(parts);
     }
 
     public boolean contains(MultiblockPart part) {

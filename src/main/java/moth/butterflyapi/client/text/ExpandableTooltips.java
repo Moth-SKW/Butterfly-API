@@ -1,8 +1,7 @@
 package moth.butterflyapi.client.text;
 
 import moth.butterflyapi.text.Texts;
-import net.minecraft.text.Text;
-
+import net.minecraft.network.chat.Component;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -21,36 +20,36 @@ public final class ExpandableTooltips {
         defaultKey = Objects.requireNonNull(key, "key");
     }
 
-    public static void add(List<Text> tooltip, Text expandedLine) {
+    public static void add(List<Component> tooltip, Component expandedLine) {
         add(tooltip, defaultKey, List.of(expandedLine));
     }
 
-    public static void add(List<Text> tooltip, List<? extends Text> expandedLines) {
+    public static void add(List<Component> tooltip, List<? extends Component> expandedLines) {
         add(tooltip, defaultKey, expandedLines);
     }
 
-    public static void add(List<Text> tooltip, Supplier<? extends List<? extends Text>> expandedLines) {
+    public static void add(List<Component> tooltip, Supplier<? extends List<? extends Component>> expandedLines) {
         add(tooltip, defaultKey, expandedLines);
     }
 
-    public static void add(List<Text> tooltip, ExpandableTooltip expandableTooltip) {
+    public static void add(List<Component> tooltip, ExpandableTooltip expandableTooltip) {
         Objects.requireNonNull(expandableTooltip, "expandableTooltip").addTo(tooltip);
     }
 
-    public static void add(List<Text> tooltip, TooltipExpandKey key, Text expandedLine) {
+    public static void add(List<Component> tooltip, TooltipExpandKey key, Component expandedLine) {
         add(tooltip, key, List.of(expandedLine));
     }
 
-    public static void add(List<Text> tooltip, TooltipExpandKey key, List<? extends Text> expandedLines) {
+    public static void add(List<Component> tooltip, TooltipExpandKey key, List<? extends Component> expandedLines) {
         add(tooltip, key, defaultPrompt(key), expandedLines);
     }
 
-    public static void add(List<Text> tooltip, TooltipExpandKey key, Supplier<? extends List<? extends Text>> expandedLines) {
+    public static void add(List<Component> tooltip, TooltipExpandKey key, Supplier<? extends List<? extends Component>> expandedLines) {
         Objects.requireNonNull(expandedLines, "expandedLines");
         add(tooltip, key, defaultPrompt(key), expandedLines.get());
     }
 
-    public static void add(List<Text> tooltip, TooltipExpandKey key, Text prompt, List<? extends Text> expandedLines) {
+    public static void add(List<Component> tooltip, TooltipExpandKey key, Component prompt, List<? extends Component> expandedLines) {
         Objects.requireNonNull(tooltip, "tooltip");
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(prompt, "prompt");
@@ -66,7 +65,7 @@ public final class ExpandableTooltips {
         return ExpandableTooltip.builder(key);
     }
 
-    public static Text defaultPrompt(TooltipExpandKey key) {
+    public static Component defaultPrompt(TooltipExpandKey key) {
         Objects.requireNonNull(key, "key");
         return Texts.builder("Hold ")
                 .color("#8A8A8A")

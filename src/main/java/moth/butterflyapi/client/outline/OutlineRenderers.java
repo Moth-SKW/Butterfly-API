@@ -1,16 +1,16 @@
 package moth.butterflyapi.client.outline;
 
+//? if >=1.21.11 && <26.2 {
 import moth.butterflyapi.outline.OutlineStyle;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.OutlineVertexConsumerProvider;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.VertexConsumerProvider;
-import net.minecraft.client.render.VertexConsumers;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.OutlineBufferSource;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.resources.Identifier;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexMultiConsumer;
 import java.util.Objects;
 
 @Environment(EnvType.CLIENT)
@@ -18,8 +18,8 @@ public final class OutlineRenderers {
     private OutlineRenderers() {
     }
 
-    public static VertexConsumerProvider capture(
-            VertexConsumerProvider original,
+    public static MultiBufferSource capture(
+            MultiBufferSource original,
             Identifier texture,
             OutlineStyle style
     ) {
@@ -27,14 +27,14 @@ public final class OutlineRenderers {
         Objects.requireNonNull(texture, "texture");
         Objects.requireNonNull(style, "style");
 
-        OutlineVertexConsumerProvider outlines = MinecraftClient.getInstance()
-                .getBufferBuilders()
-                .getOutlineVertexConsumers();
+        OutlineBufferSource outlines = Minecraft.getInstance()
+                .renderBuffers()
+                .outlineBufferSource();
         OutlineRenderBridge.configure(outlines, style);
 
         return renderLayer -> {
             VertexConsumer normal = original.getBuffer(renderLayer);
-            RenderLayer maskLayer = OutlineRenderBridge.maskLayer(renderLayer, style, texture);
+            RenderType maskLayer = OutlineRenderBridge.maskLayer(renderLayer, style, texture);
             if (maskLayer == null) {
                 return normal;
             }
@@ -42,14 +42,14 @@ public final class OutlineRenderers {
         };
     }
 
-    public static VertexConsumerProvider captureAutomatic(
-            VertexConsumerProvider original,
-            OutlineVertexConsumerProvider outlines,
+    public static MultiBufferSource captureAutomatic(
+            MultiBufferSource original,
+            OutlineBufferSource outlines,
             OutlineStyle style
     ) {
         return renderLayer -> {
             VertexConsumer normal = original.getBuffer(renderLayer);
-            RenderLayer maskLayer = OutlineRenderBridge.maskLayer(renderLayer, style);
+            RenderType maskLayer = OutlineRenderBridge.maskLayer(renderLayer, style);
             if (maskLayer == null) {
                 return normal;
             }
@@ -58,6 +58,17 @@ public final class OutlineRenderers {
     }
 
     private static VertexConsumer combine(VertexConsumer normal, VertexConsumer outline) {
-        return VertexConsumers.union(outline, normal);
+        return VertexMultiConsumer.create(outline, normal);
     }
 }
+//?} else {
+/*
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
+
+@Environment(EnvType.CLIENT)
+public final class OutlineRenderers {
+    private OutlineRenderers() {
+    }
+}
+*///?}

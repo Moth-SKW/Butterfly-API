@@ -1,9 +1,14 @@
 package moth.butterflyapi.text.internal;
 
+//? if <1.21.11 {
+/*
+import moth.butterflyapi.mixin.LegacyStyleTextEffectAccessor;
+*///?} else {
 import moth.butterflyapi.mixin.StyleTextEffectAccessor;
+//?}
 import moth.butterflyapi.text.TextEffect;
 import moth.butterflyapi.text.TextRenderStyle;
-import net.minecraft.text.Style;
+import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 
 public final class TextStyleEffects {
@@ -60,6 +65,24 @@ public final class TextStyleEffects {
     }
 
     public static Style copyOf(Style style) {
+//? if <1.21.11 {
+/*
+        LegacyStyleTextEffectAccessor access = (LegacyStyleTextEffectAccessor) (Object) style;
+        Style copy = LegacyStyleTextEffectAccessor.butterflyApi$create(
+                access.butterflyApi$getColor(),
+                access.butterflyApi$getBold(),
+                access.butterflyApi$getItalic(),
+                access.butterflyApi$getUnderlined(),
+                access.butterflyApi$getStrikethrough(),
+                access.butterflyApi$getObfuscated(),
+                access.butterflyApi$getClickEvent(),
+                access.butterflyApi$getHoverEvent(),
+                access.butterflyApi$getInsertion(),
+                access.butterflyApi$getFont()
+        );
+        copy(style, copy);
+        return copy;
+*///?} else {
         StyleTextEffectAccessor access = (StyleTextEffectAccessor) (Object) style;
         Style copy = StyleTextEffectAccessor.butterflyApi$create(
                 access.butterflyApi$getColor(),
@@ -76,5 +99,6 @@ public final class TextStyleEffects {
         );
         copy(style, copy);
         return copy;
+//?}
     }
 }

@@ -1,11 +1,10 @@
 package moth.butterflyapi.text;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-
 import java.util.Locale;
 import java.util.Objects;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
 
 public final class TextColors {
     private TextColors() {
@@ -51,11 +50,11 @@ public final class TextColors {
         return style.withColor(rgb(hexColor));
     }
 
-    public static MutableText color(Text text, String hexColor) {
-        return text.copy().styled(style -> color(style, hexColor));
+    public static MutableComponent color(Component text, String hexColor) {
+        return text.copy().withStyle(style -> color(style, hexColor));
     }
 
-    public static MutableText literal(String text, String hexColor) {
-        return Text.literal(text).styled(style -> color(style, hexColor));
+    public static MutableComponent literal(String text, String hexColor) {
+        return Component.literal(text).withStyle(style -> color(style, hexColor));
     }
 }

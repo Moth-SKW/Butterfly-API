@@ -12,7 +12,11 @@ public final class TextGradient {
 
     private TextGradient(TextGradientOrientation orientation, float rotationDegrees, int[] colors) {
         this.orientation = Objects.requireNonNull(orientation, "orientation");
+        if (!Float.isFinite(rotationDegrees)) {
+            throw new IllegalArgumentException("rotationDegrees must be finite");
+        }
         this.rotationDegrees = rotationDegrees;
+        Objects.requireNonNull(colors, "colors");
         if (colors.length < 2) {
             throw new IllegalArgumentException("A text gradient needs at least two colors.");
         }

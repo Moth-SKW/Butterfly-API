@@ -1,18 +1,12 @@
 {
-  "required": false,
+  "required": true,
   "minVersion": "0.8",
   "package": "moth.butterflyapi.client.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_${mixin_java_version}",
   "client": [
-    "CreativeInventoryScreenMixin",
-    "CreativeScreenHandlerAccessor",
-    "DrawContextItemProgressBarMixin",
-    "HandledScreenAccessor",
-    "HandledScreenMixin",
-    "PlayerEntityDebugNameMixin",
-    "TextRendererDrawerMixin"
+${client_mixins}
   ],
   "injectors": {
-    "defaultRequire": 0
+    "defaultRequire": 1
   }
 }

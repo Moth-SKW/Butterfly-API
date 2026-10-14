@@ -3,16 +3,16 @@ package moth.butterflyapi.plush;
 import moth.butterflyapi.ButterflyApi;
 import net.fabricmc.fabric.api.object.builder.v1.block.entity.FabricBlockEntityTypeBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.Block;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
@@ -66,16 +66,20 @@ public final class ButterflyPlushes {
         for (RegisteredPlush plush : PLUSHES.values()) {
             PlushDefinition definition = plush.definition();
             Identifier id = definition.id();
-            SoundEvent sound = Registry.register(Registries.SOUND_EVENT, definition.soundId(), SoundEvent.of(definition.soundId()));
-            definition.blockSettings().registryKey(RegistryKey.of(RegistryKeys.BLOCK, id));
-            PlushBlock block = Registry.register(Registries.BLOCK, id, new PlushBlock(definition, plush::soundOrNull));
-            definition.itemSettings().registryKey(RegistryKey.of(RegistryKeys.ITEM, id));
-            Item item = Registry.register(Registries.ITEM, id, new BlockItem(block, definition.itemSettings()));
+            SoundEvent sound = Registry.register(BuiltInRegistries.SOUND_EVENT, definition.soundId(), SoundEvent.createVariableRangeEvent(definition.soundId()));
+//? if >=1.21.11 {
+            definition.blockSettings().setId(ResourceKey.create(Registries.BLOCK, id));
+//?}
+            PlushBlock block = Registry.register(BuiltInRegistries.BLOCK, id, new PlushBlock(definition, plush::soundOrNull));
+//? if >=1.21.11 {
+            definition.itemSettings().setId(ResourceKey.create(Registries.ITEM, id));
+//?}
+            Item item = Registry.register(BuiltInRegistries.ITEM, id, new BlockItem(block, definition.itemSettings()));
             plush.bind(sound, block, item);
         }
 
         blockEntityType = Registry.register(
-                Registries.BLOCK_ENTITY_TYPE,
+                BuiltInRegistries.BLOCK_ENTITY_TYPE,
                 ButterflyApi.id("plush"),
                 FabricBlockEntityTypeBuilder.create(
                         PlushBlockEntity::new,

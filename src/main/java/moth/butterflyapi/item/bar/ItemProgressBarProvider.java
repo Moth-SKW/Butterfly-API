@@ -1,8 +1,7 @@
 package moth.butterflyapi.item.bar;
 
-import net.minecraft.item.ItemStack;
-
 import java.util.List;
+import net.minecraft.world.item.ItemStack;
 
 @FunctionalInterface
 public interface ItemProgressBarProvider {

@@ -4,9 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import net.minecraft.util.Identifier;
-
 import java.util.Objects;
+import net.minecraft.resources.Identifier;
 
 public final class ItemModelDefinitions {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -16,8 +15,8 @@ public final class ItemModelDefinitions {
 
     public static SeparateGuiHeldModels separateGuiAndHeld(Identifier itemId) {
         Objects.requireNonNull(itemId, "itemId");
-        Identifier guiModel = itemId.withPrefixedPath("item/");
-        Identifier heldModel = itemId.withPrefixedPath("item/").withSuffixedPath("_held");
+        Identifier guiModel = itemId.withPrefix("item/");
+        Identifier heldModel = itemId.withPrefix("item/").withSuffix("_held");
         return separateGuiAndHeld(itemId, guiModel, heldModel);
     }
 

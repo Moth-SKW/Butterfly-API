@@ -1,10 +1,9 @@
 package moth.butterflyapi.client.text;
 
 import moth.butterflyapi.text.Texts;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.ConfirmLinkScreen;
-import net.minecraft.text.Text;
-
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.ConfirmLinkScreen;
+import net.minecraft.network.chat.Component;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -17,31 +16,39 @@ public final class TooltipActions {
     private TooltipActions() {
     }
 
-    public static void add(List<Text> tooltip, TooltipExpandKey key, String actionName, Runnable action) {
-        add(tooltip, key, defaultPrompt(key, Text.literal(actionName)), actionName, action);
+    public static void add(List<Component> tooltip, TooltipExpandKey key, String actionName, Runnable action) {
+        add(tooltip, key, defaultPrompt(key, Component.literal(actionName)), actionName, action);
     }
 
-    public static void add(List<Text> tooltip, TooltipExpandKey key, Text actionName, Runnable action) {
+    public static void add(List<Component> tooltip, TooltipExpandKey key, Component actionName, Runnable action) {
         add(tooltip, key, defaultPrompt(key, actionName), actionName.getString(), action);
     }
 
-    public static void add(List<Text> tooltip, TooltipExpandKey key, Text prompt, String actionId, Runnable action) {
+    public static void add(List<Component> tooltip, TooltipExpandKey key, Component prompt, String actionId, Runnable action) {
         Objects.requireNonNull(tooltip, "tooltip");
         Objects.requireNonNull(prompt, "prompt");
         tooltip.add(prompt);
         runWhenPressed(key, actionId, action);
     }
 
-    public static void link(List<Text> tooltip, TooltipExpandKey key, String label, String uri) {
-        link(tooltip, key, Text.literal(label), URI.create(Objects.requireNonNull(uri, "uri")));
+    public static void link(List<Component> tooltip, TooltipExpandKey key, String label, String uri) {
+        link(tooltip, key, Component.literal(label), URI.create(Objects.requireNonNull(uri, "uri")));
     }
 
-    public static void link(List<Text> tooltip, TooltipExpandKey key, Text label, URI uri) {
+    public static void link(List<Component> tooltip, TooltipExpandKey key, Component label, URI uri) {
         Objects.requireNonNull(uri, "uri");
         add(tooltip, key, defaultPrompt(key, label), "link:" + uri, () -> {
-            MinecraftClient client = MinecraftClient.getInstance();
+            Minecraft client = Minecraft.getInstance();
             if (client != null) {
-                ConfirmLinkScreen.open(client.currentScreen, uri);
+                ConfirmLinkScreen.confirmLinkNow(
+//? if >=26.2 {
+/*
+                        client.gui.screen(),
+*///?} else {
+                        client.screen,
+//?}
+                        uri
+                );
             }
         });
     }
@@ -63,7 +70,11 @@ public final class TooltipActions {
         }
     }
 
-    public static Text defaultPrompt(TooltipExpandKey key, Text actionName) {
+    public static void clearInteractionState() {
+        PRESSED.clear();
+    }
+
+    public static Component defaultPrompt(TooltipExpandKey key, Component actionName) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(actionName, "actionName");
         return Texts.builder("Press ")

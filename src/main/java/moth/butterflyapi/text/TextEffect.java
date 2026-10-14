@@ -1,6 +1,6 @@
 package moth.butterflyapi.text;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.Identifier;
 
 public interface TextEffect {
     Identifier id();

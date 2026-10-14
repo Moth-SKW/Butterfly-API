@@ -1,6 +1,6 @@
 package moth.butterflyapi.client.render;
 
-import net.minecraft.client.render.VertexConsumer;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 
 public final class NoopVertexConsumer implements VertexConsumer {
     public static final NoopVertexConsumer INSTANCE = new NoopVertexConsumer();
@@ -9,42 +9,52 @@ public final class NoopVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer vertex(float x, float y, float z) {
+    public VertexConsumer addVertex(float x, float y, float z) {
         return this;
     }
 
     @Override
-    public VertexConsumer color(int red, int green, int blue, int alpha) {
+    public VertexConsumer setColor(int red, int green, int blue, int alpha) {
         return this;
     }
 
     @Override
-    public VertexConsumer color(int argb) {
+    public VertexConsumer setColor(int argb) {
         return this;
     }
 
     @Override
-    public VertexConsumer texture(float u, float v) {
+    public VertexConsumer setUv(float u, float v) {
         return this;
     }
 
     @Override
-    public VertexConsumer overlay(int u, int v) {
+    public VertexConsumer setUv1(int u, int v) {
         return this;
     }
 
     @Override
-    public VertexConsumer light(int u, int v) {
+    public VertexConsumer setUv2(int u, int v) {
         return this;
     }
 
+//? if >=26.3 {
+/*
     @Override
-    public VertexConsumer normal(float x, float y, float z) {
+    public VertexConsumer setUv3(float u, float v) {
+        return this;
+    }
+*///?}
+
+    @Override
+    public VertexConsumer setNormal(float x, float y, float z) {
         return this;
     }
 
+//? if >=1.21.11 {
     @Override
-    public VertexConsumer lineWidth(float width) {
+    public VertexConsumer setLineWidth(float width) {
         return this;
     }
+//?}
 }

@@ -402,14 +402,30 @@ public final class OutlineStyle {
             return this;
         }
 
+        public Builder blackBorder() {
+            return blackBorder(true);
+        }
+
         public Builder visibleThroughWalls(boolean visibleThroughWalls) {
             this.visibleThroughWalls = visibleThroughWalls;
             return this;
         }
 
+        public Builder throughWalls() {
+            return visibleThroughWalls(true);
+        }
+
+        public Builder occludedByWalls() {
+            return visibleThroughWalls(false);
+        }
+
         public Builder matchModelLayer(boolean matchModelLayer) {
             this.matchModelLayer = matchModelLayer;
             return this;
+        }
+
+        public Builder matchModelLayer() {
+            return matchModelLayer(true);
         }
 
         public Builder consistentThickness(boolean consistentThickness) {

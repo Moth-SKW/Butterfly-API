@@ -1,44 +1,46 @@
 package moth.butterflyapi.block.multiblock;
 
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.Blocks;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.state.StateManager;
-import net.minecraft.state.property.EnumProperty;
-import net.minecraft.state.property.IntProperty;
-import net.minecraft.state.property.Properties;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.World;
-import net.minecraft.world.WorldView;
-import net.minecraft.world.tick.ScheduledTickView;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+//? if >=1.21.11 {
+import net.minecraft.world.level.ScheduledTickAccess;
+//?}
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
 
 public abstract class AbstractMultiblockBlock extends Block {
-    public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
-    public static final IntProperty PART_X = IntProperty.of("part_x", 0, 1);
-    public static final IntProperty PART_Y = IntProperty.of("part_y", 0, 3);
-    public static final IntProperty PART_Z = IntProperty.of("part_z", 0, 1);
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final IntegerProperty PART_X = IntegerProperty.create("part_x", 0, 1);
+    public static final IntegerProperty PART_Y = IntegerProperty.create("part_y", 0, 3);
+    public static final IntegerProperty PART_Z = IntegerProperty.create("part_z", 0, 1);
     private static final ThreadLocal<Boolean> UPDATING_PARTS = ThreadLocal.withInitial(() -> false);
 
     private final MultiblockShape shape;
 
-    protected AbstractMultiblockBlock(MultiblockShape shape, AbstractBlock.Settings settings) {
+    protected AbstractMultiblockBlock(MultiblockShape shape, BlockBehaviour.Properties settings) {
         super(settings);
         this.shape = Objects.requireNonNull(shape, "shape");
-        setDefaultState(getDefaultState()
-                .with(FACING, Direction.NORTH)
-                .with(PART_X, 0)
-                .with(PART_Y, 0)
-                .with(PART_Z, 0));
+        registerDefaultState(defaultBlockState()
+                .setValue(FACING, Direction.NORTH)
+                .setValue(PART_X, 0)
+                .setValue(PART_Y, 0)
+                .setValue(PART_Z, 0));
     }
 
     public MultiblockShape shape() {
@@ -47,59 +49,89 @@ public abstract class AbstractMultiblockBlock extends Block {
 
     @Nullable
     @Override
-    public BlockState getPlacementState(ItemPlacementContext context) {
-        Direction facing = context.getHorizontalPlayerFacing().getOpposite();
-        BlockPos origin = context.getBlockPos();
-        if (!MultiblockPlacement.canPlace(context.getWorld(), origin, facing, shape, context)) {
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        Direction facing = context.getHorizontalDirection().getOpposite();
+        BlockPos origin = context.getClickedPos();
+        if (!MultiblockPlacement.canPlace(context.getLevel(), origin, facing, shape, context)) {
             return null;
         }
         return stateForPart(facing, new MultiblockPart(0, 0, 0));
     }
 
     @Override
-    public void onPlaced(World world, BlockPos pos, BlockState state, LivingEntity placer, ItemStack itemStack) {
-        if (world.isClient()) {
+    public void setPlacedBy(Level world, BlockPos pos, BlockState state, LivingEntity placer, ItemStack itemStack) {
+        if (world.isClientSide()) {
             return;
         }
-        Direction facing = state.get(FACING);
+        Direction facing = state.getValue(FACING);
         BlockPos origin = originOf(pos, state);
         runUpdatingParts(() -> MultiblockPlacement.place(world, origin, facing, shape, part -> stateForPart(facing, part)));
     }
 
     @Override
-    protected boolean canPlaceAt(BlockState state, WorldView world, BlockPos pos) {
+    protected boolean canSurvive(BlockState state, LevelReader world, BlockPos pos) {
         return shape.contains(partOf(state));
     }
 
+//? if >=1.21.11 {
     @Override
-    protected BlockState getStateForNeighborUpdate(
+    protected BlockState updateShape(
             BlockState state,
-            WorldView world,
-            ScheduledTickView tickView,
+            LevelReader world,
+            ScheduledTickAccess tickView,
             BlockPos pos,
             Direction direction,
             BlockPos neighborPos,
             BlockState neighborState,
-            Random random
+            RandomSource random
     ) {
         if (!UPDATING_PARTS.get() && !isComplete(world, pos, state)) {
-            return Blocks.AIR.getDefaultState();
+            return Blocks.AIR.defaultBlockState();
         }
-        return super.getStateForNeighborUpdate(state, world, tickView, pos, direction, neighborPos, neighborState, random);
+        return super.updateShape(state, world, tickView, pos, direction, neighborPos, neighborState, random);
     }
-
+//?} else {
+/*
     @Override
-    protected void onStateReplaced(BlockState state, ServerWorld world, BlockPos pos, boolean moved) {
-        super.onStateReplaced(state, world, pos, moved);
+    protected BlockState updateShape(
+            BlockState state,
+            Direction direction,
+            BlockState neighborState,
+            net.minecraft.world.level.LevelAccessor world,
+            BlockPos pos,
+            BlockPos neighborPos
+    ) {
+        if (!UPDATING_PARTS.get() && !isComplete(world, pos, state)) {
+            return Blocks.AIR.defaultBlockState();
+        }
+        return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+    }
+*///?}
+
+//? if >=1.21.11 {
+    @Override
+    protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel world, BlockPos pos, boolean moved) {
+        super.affectNeighborsAfterRemoval(state, world, pos, moved);
         if (moved || UPDATING_PARTS.get()) {
             return;
         }
 
-        runUpdatingParts(() -> MultiblockPlacement.remove(world, originOf(pos, state), state.get(FACING), shape, this));
+        runUpdatingParts(() -> MultiblockPlacement.remove(world, originOf(pos, state), state.getValue(FACING), shape, this));
     }
+//?} else {
+/*
+    @Override
+    public void onRemove(BlockState state, Level world, BlockPos pos, BlockState replacement, boolean moved) {
+        super.onRemove(state, world, pos, replacement, moved);
+        if (moved || UPDATING_PARTS.get() || state.getBlock() == replacement.getBlock() || world.isClientSide()) {
+            return;
+        }
+        runUpdatingParts(() -> MultiblockPlacement.remove(world, originOf(pos, state), state.getValue(FACING), shape, this));
+    }
+*///?}
 
     @Override
-    protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, PART_X, PART_Y, PART_Z);
     }
 
@@ -107,32 +139,32 @@ public abstract class AbstractMultiblockBlock extends Block {
         if (!shape.contains(part)) {
             throw new IllegalArgumentException("Part " + part + " is outside shape " + shape);
         }
-        return getDefaultState()
-                .with(FACING, MultiblockShape.horizontal(facing))
-                .with(PART_X, part.x())
-                .with(PART_Y, part.y())
-                .with(PART_Z, part.z());
+        return defaultBlockState()
+                .setValue(FACING, MultiblockShape.horizontal(facing))
+                .setValue(PART_X, part.x())
+                .setValue(PART_Y, part.y())
+                .setValue(PART_Z, part.z());
     }
 
     protected MultiblockPart partOf(BlockState state) {
-        return new MultiblockPart(state.get(PART_X), state.get(PART_Y), state.get(PART_Z));
+        return new MultiblockPart(state.getValue(PART_X), state.getValue(PART_Y), state.getValue(PART_Z));
     }
 
     protected BlockPos originOf(BlockPos pos, BlockState state) {
-        return MultiblockPlacement.originOf(pos, state.get(FACING), partOf(state));
+        return MultiblockPlacement.originOf(pos, state.getValue(FACING), partOf(state));
     }
 
-    private boolean isComplete(WorldView world, BlockPos pos, BlockState state) {
+    private boolean isComplete(LevelReader world, BlockPos pos, BlockState state) {
         if (!shape.contains(partOf(state))) {
             return false;
         }
 
-        Direction facing = state.get(FACING);
+        Direction facing = state.getValue(FACING);
         BlockPos origin = originOf(pos, state);
         return shape.parts().allMatch(part -> {
             BlockState partState = world.getBlockState(MultiblockPlacement.partPos(origin, facing, part));
-            return partState.isOf(this)
-                    && partState.get(FACING) == facing
+            return partState.is(this)
+                    && partState.getValue(FACING) == facing
                     && partOf(partState).equals(part);
         });
     }

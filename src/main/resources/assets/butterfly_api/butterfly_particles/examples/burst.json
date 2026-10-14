@@ -1,0 +1,25 @@
+{
+  "format_version": 1,
+  "emitter": {
+    "lifetime": 0.25,
+    "emission_rate": 96,
+    "shape": {
+      "type": "sphere",
+      "radius": 0.1
+    }
+  },
+  "particle": {
+    "lifetime": [0.35, 0.65],
+    "velocity": [0.0, 0.04, 0.0],
+    "acceleration": [0.0, -0.01, 0.0],
+    "color": {
+      "start": "#CDB4DBFF",
+      "end": "#FFC8DD00"
+    },
+    "size": {
+      "start": [0.1, 0.2],
+      "end": 0.03
+    },
+    "texture": "minecraft:generic_0"
+  }
+}

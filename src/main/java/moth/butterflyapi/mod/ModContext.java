@@ -2,6 +2,9 @@ package moth.butterflyapi.mod;
 
 import moth.butterflyapi.client.ClientRegistrar;
 import moth.butterflyapi.block.BlockBuilder;
+import moth.butterflyapi.block.Blocks;
+import moth.butterflyapi.item.ItemBuilder;
+import moth.butterflyapi.item.Items;
 import moth.butterflyapi.itemgroup.TabBuilder;
 import moth.butterflyapi.itemgroup.Tabs;
 import moth.butterflyapi.plush.PlushDefinition;
@@ -10,39 +13,41 @@ import moth.butterflyapi.registry.Registrar;
 import moth.butterflyapi.text.TextFonts;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.screen.ingame.HandledScreens;
-import net.minecraft.client.gui.screen.ingame.ScreenHandlerProvider;
-import net.minecraft.client.render.block.entity.BlockEntityRendererFactory;
-import net.minecraft.client.render.block.entity.state.BlockEntityRenderState;
-import net.minecraft.client.render.entity.EntityRendererFactory;
-import net.minecraft.client.render.entity.model.EntityModelLayer;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.particle.ParticleEffect;
-import net.minecraft.particle.ParticleType;
-import net.minecraft.potion.Potion;
-import net.minecraft.recipe.RecipeSerializer;
-import net.minecraft.recipe.RecipeType;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.MenuAccess;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+//? if >=1.21.11 {
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState;
+//?}
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
+import net.minecraft.core.Registry;
+import net.minecraft.core.particles.ParticleOptions;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.decoration.painting.PaintingVariant;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.level.ItemLike;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +64,8 @@ public final class ModContext {
     private final Logger logger;
     private final Registrar registrar;
     private final Tabs tabs;
+    private final Items items;
+    private final Blocks blocks;
     @Nullable
     private ClientRegistrar clientRegistrar;
 
@@ -68,6 +75,8 @@ public final class ModContext {
         this.logger = Objects.requireNonNull(logger, "logger");
         this.registrar = new Registrar(this);
         this.tabs = new Tabs(this);
+        this.items = new Items(this);
+        this.blocks = new Blocks(this);
     }
 
     public static ModContext of(String modId) {
@@ -80,7 +89,7 @@ public final class ModContext {
 
     private static String validateModId(String modId) {
         Objects.requireNonNull(modId, "modId");
-        Identifier.of(modId, "bootstrap_check");
+        Identifier.fromNamespaceAndPath(modId, "bootstrap_check");
         return modId;
     }
 
@@ -97,23 +106,33 @@ public final class ModContext {
     }
 
     public Identifier id(String path) {
-        return Identifier.of(modId, path);
+        return Identifier.fromNamespaceAndPath(modId, path);
     }
 
-    public RegistryKey<Block> blockKey(String path) {
-        return RegistryKey.of(RegistryKeys.BLOCK, id(path));
+    public ResourceKey<Block> blockKey(String path) {
+        return ResourceKey.create(Registries.BLOCK, id(path));
     }
 
-    public AbstractBlock.Settings blockSettings(String path) {
-        return AbstractBlock.Settings.create().registryKey(blockKey(path));
+    public BlockBehaviour.Properties blockSettings(String path) {
+//? if <1.21.11 {
+/*
+        return BlockBehaviour.Properties.of();
+*///?} else {
+        return BlockBehaviour.Properties.of().setId(blockKey(path));
+//?}
     }
 
-    public RegistryKey<Item> itemKey(String path) {
-        return RegistryKey.of(RegistryKeys.ITEM, id(path));
+    public ResourceKey<Item> itemKey(String path) {
+        return ResourceKey.create(Registries.ITEM, id(path));
     }
 
-    public Item.Settings itemSettings(String path) {
-        return new Item.Settings().registryKey(itemKey(path));
+    public Item.Properties itemSettings(String path) {
+//? if <1.21.11 {
+/*
+        return new Item.Properties();
+*///?} else {
+        return new Item.Properties().setId(itemKey(path));
+//?}
     }
 
     public PlushDefinition.Builder plush(String path) {
@@ -130,6 +149,18 @@ public final class ModContext {
 
     public Tabs tabs() {
         return tabs;
+    }
+
+    public Items items() {
+        return items;
+    }
+
+    public Blocks blocks() {
+        return blocks;
+    }
+
+    public <T extends Item> ItemBuilder<T> itemBuilder(String path, Function<Item.Properties, T> factory) {
+        return items.builder(path, factory);
     }
 
     public ClientRegistrar client() {
@@ -150,7 +181,7 @@ public final class ModContext {
         return registrar.item(path, item);
     }
 
-    public <T extends Item> T item(String path, Function<Item.Settings, T> factory) {
+    public <T extends Item> T item(String path, Function<Item.Properties, T> factory) {
         Objects.requireNonNull(factory, "factory");
         return item(path, factory.apply(itemSettings(path)));
     }
@@ -159,16 +190,16 @@ public final class ModContext {
         return registrar.block(path, block);
     }
 
-    public <T extends Block> T block(String path, Function<AbstractBlock.Settings, T> factory) {
+    public <T extends Block> T block(String path, Function<BlockBehaviour.Properties, T> factory) {
         Objects.requireNonNull(factory, "factory");
         return block(path, factory.apply(blockSettings(path)));
     }
 
-    public <T extends Block> BlockBuilder<T> blockBuilder(String path, Function<AbstractBlock.Settings, T> factory) {
+    public <T extends Block> BlockBuilder<T> blockBuilder(String path, Function<BlockBehaviour.Properties, T> factory) {
         return new BlockBuilder<>(this, path, factory);
     }
 
-    public <T extends Block> T block(String path, T block, Item.Settings itemSettings) {
+    public <T extends Block> T block(String path, T block, Item.Properties itemSettings) {
         return registrar.block(path, block, itemSettings);
     }
 
@@ -204,11 +235,11 @@ public final class ModContext {
         return registrar.blockEntityType(path, blockEntityType);
     }
 
-    public <T extends ScreenHandlerType<?>> T screenHandler(String path, T screenHandlerType) {
+    public <T extends MenuType<?>> T screenHandler(String path, T screenHandlerType) {
         return registrar.screenHandler(path, screenHandlerType);
     }
 
-    public <T extends StatusEffect> T statusEffect(String path, T statusEffect) {
+    public <T extends MobEffect> T statusEffect(String path, T statusEffect) {
         return registrar.statusEffect(path, statusEffect);
     }
 
@@ -232,7 +263,7 @@ public final class ModContext {
         return registrar.painting(path, paintingVariant);
     }
 
-    public RegistryKey<ItemGroup> tabKey(String path) {
+    public ResourceKey<CreativeModeTab> tabKey(String path) {
         return tabs.key(path);
     }
 
@@ -244,23 +275,23 @@ public final class ModContext {
         return tabs.builder(path);
     }
 
-    public ItemGroup tab(String path, ItemConvertible icon, ItemConvertible... entries) {
+    public CreativeModeTab tab(String path, ItemLike icon, ItemLike... entries) {
         return tabs.create(path, icon, entries);
     }
 
-    public ItemGroup tab(String path, ItemConvertible icon, String translationKey, ItemConvertible... entries) {
+    public CreativeModeTab tab(String path, ItemLike icon, String translationKey, ItemLike... entries) {
         return tabs.create(path, icon, translationKey, entries);
     }
 
-    public ItemGroup tab(String path, Supplier<ItemStack> icon, Text displayName, Consumer<ItemGroup.Entries> entries) {
+    public CreativeModeTab tab(String path, Supplier<ItemStack> icon, Component displayName, Consumer<CreativeModeTab.Output> entries) {
         return tabs.create(path, icon, displayName, entries);
     }
 
-    public void addTo(RegistryKey<ItemGroup> group, ItemConvertible... entries) {
+    public void addTo(ResourceKey<CreativeModeTab> group, ItemLike... entries) {
         tabs.addTo(group, entries);
     }
 
-    public void addTo(RegistryKey<ItemGroup> group, Collection<? extends ItemConvertible> entries) {
+    public void addTo(ResourceKey<CreativeModeTab> group, Collection<? extends ItemLike> entries) {
         tabs.addTo(group, entries);
     }
 
@@ -276,26 +307,36 @@ public final class ModContext {
         client().translucent(blocks);
     }
 
-    public <T extends Entity> void entityRenderer(EntityType<? extends T> entityType, EntityRendererFactory<T> factory) {
+    public <T extends Entity> void entityRenderer(EntityType<? extends T> entityType, EntityRendererProvider<T> factory) {
         client().entity(entityType, factory);
     }
 
+//? if >=1.21.11 {
     public <T extends BlockEntity, S extends BlockEntityRenderState> void blockEntityRenderer(
             BlockEntityType<? extends T> blockEntityType,
-            BlockEntityRendererFactory<T, S> factory
+            BlockEntityRendererProvider<T, S> factory
     ) {
         client().blockEntity(blockEntityType, factory);
     }
+//?} else {
+/*
+    public <T extends BlockEntity> void blockEntityRenderer(
+            BlockEntityType<? extends T> blockEntityType,
+            BlockEntityRendererProvider<T> factory
+    ) {
+        client().blockEntity(blockEntityType, factory);
+    }
+*///?}
 
-    public <T extends ScreenHandler, U extends Screen & ScreenHandlerProvider<T>> void screen(ScreenHandlerType<? extends T> screenHandlerType, HandledScreens.Provider<T, U> provider) {
+    public <T extends AbstractContainerMenu, U extends Screen & MenuAccess<T>> void screen(MenuType<? extends T> screenHandlerType, MenuScreens.ScreenConstructor<T, U> provider) {
         client().screen(screenHandlerType, provider);
     }
 
-    public void modelLayer(EntityModelLayer layer, net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry.TexturedModelDataProvider provider) {
+    public void modelLayer(ModelLayerLocation layer, net.fabricmc.fabric.api.client.rendering.v1.EntityModelLayerRegistry.TexturedModelDataProvider provider) {
         client().modelLayer(layer, provider);
     }
 
-    public <T extends ParticleEffect> void particleFactory(ParticleType<T> particleType, net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.PendingParticleFactory<T> factory) {
+    public <T extends ParticleOptions> void particleFactory(ParticleType<T> particleType, net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry.PendingParticleFactory<T> factory) {
         client().particle(particleType, factory);
     }
 }

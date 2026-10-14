@@ -1,11 +1,11 @@
 package moth.butterflyapi.itemgroup;
 
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 
 final class TabEntryCapture {
     private TabEntryCapture() {
@@ -13,7 +13,7 @@ final class TabEntryCapture {
 
     static List<TabLayout.Element> capture(
             List<TabEntryOperation> operations,
-            ItemGroup.Entries targetEntries
+            CreativeModeTab.Output targetEntries
     ) {
         List<TabLayout.Element> elements = new ArrayList<>();
         for (TabEntryOperation operation : operations) {
@@ -33,23 +33,23 @@ final class TabEntryCapture {
         return List.copyOf(elements);
     }
 
-    private static ItemGroup.Entries recordingEntries(
-            ItemGroup.Entries delegate,
+    private static CreativeModeTab.Output recordingEntries(
+            CreativeModeTab.Output delegate,
             List<TabLayout.Element> captured,
             boolean forceSearchOnly,
             @Nullable TabSurface slotBackground
     ) {
-        return new ItemGroup.Entries() {
+        return new CreativeModeTab.Output() {
             @Override
-            public void add(ItemStack stack, ItemGroup.StackVisibility visibility) {
-                ItemGroup.StackVisibility effectiveVisibility = forceSearchOnly
-                        ? ItemGroup.StackVisibility.SEARCH_TAB_ONLY
+            public void accept(ItemStack stack, CreativeModeTab.TabVisibility visibility) {
+                CreativeModeTab.TabVisibility effectiveVisibility = forceSearchOnly
+                        ? CreativeModeTab.TabVisibility.SEARCH_TAB_ONLY
                         : visibility;
 
-                delegate.add(stack, effectiveVisibility);
+                delegate.accept(stack, effectiveVisibility);
                 captured.add(new TabLayout.StackElement(
                         stack,
-                        effectiveVisibility == ItemGroup.StackVisibility.SEARCH_TAB_ONLY,
+                        effectiveVisibility == CreativeModeTab.TabVisibility.SEARCH_TAB_ONLY,
                         slotBackground
                 ));
             }

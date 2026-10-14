@@ -1,18 +1,18 @@
 package moth.butterflyapi.math;
 
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.phys.Vec3;
 
 public record YawPitch(float yaw, float pitch) {
     public static YawPitch of(double yaw, double pitch) {
         return new YawPitch((float) yaw, (float) pitch);
     }
 
-    public static YawPitch fromDirection(Vec3d direction) {
+    public static YawPitch fromDirection(Vec3 direction) {
         return Angles.yawPitch(direction);
     }
 
-    public Vec3d direction() {
-        return Vec3d.fromPolar(pitch, yaw);
+    public Vec3 direction() {
+        return Vec3.directionFromRotation(pitch, yaw);
     }
 
     public YawPitch add(double yawOffset, double pitchOffset) {

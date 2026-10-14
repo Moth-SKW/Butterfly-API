@@ -1,11 +1,11 @@
 package moth.butterflyapi.plush;
 
-import net.minecraft.item.Item;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import net.minecraft.resources.Identifier;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.item.Item;
 
 public final class RegisteredPlush {
     private final PlushDefinition definition;

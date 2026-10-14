@@ -1,8 +1,9 @@
 #version 330
+${shader_preamble}
 
-in vec4 vertexColor;
+${shader_vertex_color_input} vec4 vertexColor;
 
-out vec4 fragColor;
+${shader_output} vec4 fragColor;
 
 void main() {
     fragColor = vertexColor;

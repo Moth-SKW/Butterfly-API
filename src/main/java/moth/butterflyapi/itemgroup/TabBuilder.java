@@ -2,15 +2,14 @@ package moth.butterflyapi.itemgroup;
 
 import moth.butterflyapi.mod.ModContext;
 import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroup;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ItemLike;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -27,7 +26,7 @@ public final class TabBuilder {
 
     private final ModContext context;
     private final String path;
-    private final ItemGroup.Builder builder;
+    private final CreativeModeTab.Builder builder;
     private final List<TabEntryOperation> uncategorizedOperations = new ArrayList<>();
     private final Map<String, TabCategory.Builder> categoryBuilders = new LinkedHashMap<>();
 
@@ -45,11 +44,11 @@ public final class TabBuilder {
         this.path = Objects.requireNonNull(path, "path");
         this.builder = FabricItemGroup.builder();
 
-        builder.texture(ItemGroup.getTabTextureId(DEFAULT_SEARCH_BACKGROUND));
-        builder.displayName(Text.translatable(context.tabs().translationKey(path)));
+        builder.backgroundTexture(CreativeModeTab.createTextureLocation(DEFAULT_SEARCH_BACKGROUND));
+        builder.title(Component.translatable(context.tabs().translationKey(path)));
     }
 
-    public TabBuilder icon(ItemConvertible icon) {
+    public TabBuilder icon(ItemLike icon) {
         Objects.requireNonNull(icon, "icon");
         return icon(() -> new ItemStack(icon));
     }
@@ -59,16 +58,16 @@ public final class TabBuilder {
         return this;
     }
 
-    public TabBuilder displayName(Text displayName) {
-        builder.displayName(Objects.requireNonNull(displayName, "displayName"));
+    public TabBuilder displayName(Component displayName) {
+        builder.title(Objects.requireNonNull(displayName, "displayName"));
         return this;
     }
 
     public TabBuilder translationKey(String translationKey) {
-        return displayName(Text.translatable(Objects.requireNonNull(translationKey, "translationKey")));
+        return displayName(Component.translatable(Objects.requireNonNull(translationKey, "translationKey")));
     }
 
-    public TabBuilder entries(Consumer<ItemGroup.Entries> entries) {
+    public TabBuilder entries(Consumer<CreativeModeTab.Output> entries) {
         uncategorizedOperations.add(new TabEntriesOperation(
                 Objects.requireNonNull(entries, "entries"),
                 false
@@ -76,7 +75,7 @@ public final class TabBuilder {
         return this;
     }
 
-    public TabBuilder searchOnlyEntries(Consumer<ItemGroup.Entries> entries) {
+    public TabBuilder searchOnlyEntries(Consumer<CreativeModeTab.Output> entries) {
         uncategorizedOperations.add(new TabEntriesOperation(
                 Objects.requireNonNull(entries, "entries"),
                 true
@@ -84,7 +83,7 @@ public final class TabBuilder {
         return this;
     }
 
-    public TabBuilder add(ItemConvertible... entries) {
+    public TabBuilder add(ItemLike... entries) {
         Objects.requireNonNull(entries, "entries");
         return entries(groupEntries -> addItems(groupEntries, entries));
     }
@@ -94,7 +93,7 @@ public final class TabBuilder {
         return entries(groupEntries -> addStacks(groupEntries, stacks));
     }
 
-    public TabBuilder entry(ItemConvertible entry, Consumer<TabEntryStyle.Builder> appearance) {
+    public TabBuilder entry(ItemLike entry, Consumer<TabEntryStyle.Builder> appearance) {
         Objects.requireNonNull(entry, "entry");
         return styledEntry(new ItemStack(entry), false, appearance);
     }
@@ -103,7 +102,7 @@ public final class TabBuilder {
         return styledEntry(Objects.requireNonNull(stack, "stack"), false, appearance);
     }
 
-    public TabBuilder searchOnly(ItemConvertible... entries) {
+    public TabBuilder searchOnly(ItemLike... entries) {
         Objects.requireNonNull(entries, "entries");
         return searchOnlyEntries(groupEntries -> addItems(groupEntries, entries));
     }
@@ -113,7 +112,7 @@ public final class TabBuilder {
         return searchOnlyEntries(groupEntries -> addStacks(groupEntries, stacks));
     }
 
-    public TabBuilder searchOnlyEntry(ItemConvertible entry, Consumer<TabEntryStyle.Builder> appearance) {
+    public TabBuilder searchOnlyEntry(ItemLike entry, Consumer<TabEntryStyle.Builder> appearance) {
         Objects.requireNonNull(entry, "entry");
         return styledEntry(new ItemStack(entry), true, appearance);
     }
@@ -132,7 +131,7 @@ public final class TabBuilder {
         return this;
     }
 
-    public TabBuilder category(String id, Text text, Consumer<TabCategory.Builder> configuration) {
+    public TabBuilder category(String id, Component text, Consumer<TabCategory.Builder> configuration) {
         Objects.requireNonNull(configuration, "configuration");
         if (categoryBuilders.containsKey(id)) {
             throw new IllegalArgumentException("Duplicate creative-tab category id: " + id);
@@ -145,29 +144,29 @@ public final class TabBuilder {
     }
 
     public TabBuilder category(String id, String text, Consumer<TabCategory.Builder> configuration) {
-        return category(id, Text.literal(Objects.requireNonNull(text, "text")), configuration);
+        return category(id, Component.literal(Objects.requireNonNull(text, "text")), configuration);
     }
 
-    public TabBuilder category(String id, Text text) {
+    public TabBuilder category(String id, Component text) {
         return category(id, text, category -> {
         });
     }
 
     public TabBuilder category(String id, String text) {
-        return category(id, Text.literal(Objects.requireNonNull(text, "text")));
+        return category(id, Component.literal(Objects.requireNonNull(text, "text")));
     }
 
-    public TabBuilder categoryEntries(String id, Consumer<ItemGroup.Entries> entries) {
+    public TabBuilder categoryEntries(String id, Consumer<CreativeModeTab.Output> entries) {
         categoryBuilder(id).entries(entries);
         return this;
     }
 
-    public TabBuilder searchOnlyCategoryEntries(String id, Consumer<ItemGroup.Entries> entries) {
+    public TabBuilder searchOnlyCategoryEntries(String id, Consumer<CreativeModeTab.Output> entries) {
         categoryBuilder(id).searchOnlyEntries(entries);
         return this;
     }
 
-    public TabBuilder addToCategory(String id, ItemConvertible... entries) {
+    public TabBuilder addToCategory(String id, ItemLike... entries) {
         categoryBuilder(id).add(entries);
         return this;
     }
@@ -179,7 +178,7 @@ public final class TabBuilder {
 
     public TabBuilder entryInCategory(
             String id,
-            ItemConvertible entry,
+            ItemLike entry,
             Consumer<TabEntryStyle.Builder> appearance
     ) {
         categoryBuilder(id).entry(entry, appearance);
@@ -195,7 +194,7 @@ public final class TabBuilder {
         return this;
     }
 
-    public TabBuilder searchOnlyInCategory(String id, ItemConvertible... entries) {
+    public TabBuilder searchOnlyInCategory(String id, ItemLike... entries) {
         categoryBuilder(id).searchOnly(entries);
         return this;
     }
@@ -207,7 +206,7 @@ public final class TabBuilder {
 
     public TabBuilder searchOnlyEntryInCategory(
             String id,
-            ItemConvertible entry,
+            ItemLike entry,
             Consumer<TabEntryStyle.Builder> appearance
     ) {
         categoryBuilder(id).searchOnlyEntry(entry, appearance);
@@ -252,17 +251,17 @@ public final class TabBuilder {
 
     public TabBuilder special() {
         specialPosition = true;
-        builder.special();
+        builder.alignedRight();
         return this;
     }
 
     public TabBuilder noScrollbar() {
-        builder.noScrollbar();
+        builder.noScrollBar();
         return this;
     }
 
     public TabBuilder noRenderedName() {
-        builder.noRenderedName();
+        builder.hideTitle();
         return this;
     }
 
@@ -280,7 +279,7 @@ public final class TabBuilder {
     }
 
     public TabBuilder backgroundSuffix(String suffix) {
-        builder.texture(ItemGroup.getTabTextureId(Objects.requireNonNull(suffix, "suffix")));
+        builder.backgroundTexture(CreativeModeTab.createTextureLocation(Objects.requireNonNull(suffix, "suffix")));
         customBackgroundTexture = null;
         return this;
     }
@@ -361,9 +360,9 @@ public final class TabBuilder {
         return this;
     }
 
-    public ItemGroup build() {
+    public CreativeModeTab build() {
         validateAppearance();
-        RegistryKey<ItemGroup> key = context.tabs().key(path);
+        ResourceKey<CreativeModeTab> key = context.tabs().key(path);
         List<TabCategory> categories = resolveCategories();
         TabProperties.Definition definition = new TabProperties.Definition(
                 customOverlay,
@@ -376,7 +375,7 @@ public final class TabBuilder {
                 categories
         );
 
-        builder.entries((displayContext, targetEntries) -> {
+        builder.displayItems((displayContext, targetEntries) -> {
             List<TabLayout.Element> uncategorized = TabEntryCapture.capture(
                     uncategorizedOperations,
                     targetEntries
@@ -391,7 +390,7 @@ public final class TabBuilder {
             definition.updateLayout(new TabLayout(uncategorized, categoryLayouts));
         });
 
-        ItemGroup group = Registry.register(Registries.ITEM_GROUP, context.id(path), builder.build());
+        CreativeModeTab group = Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, context.id(path), builder.build());
         TabProperties.register(key, definition);
         return group;
     }
@@ -404,7 +403,7 @@ public final class TabBuilder {
         ItemStack capturedStack = Objects.requireNonNull(stack, "stack").copy();
         TabEntryStyle style = TabEntryStyle.configure(appearance);
         uncategorizedOperations.add(new TabEntriesOperation(
-                entries -> entries.add(capturedStack.copy()),
+                entries -> entries.accept(capturedStack.copy()),
                 searchOnly,
                 style.slotBackground()
         ));
@@ -455,15 +454,15 @@ public final class TabBuilder {
         return List.copyOf(categories);
     }
 
-    private static void addItems(ItemGroup.Entries target, ItemConvertible[] entries) {
-        for (ItemConvertible entry : entries) {
-            target.add(Objects.requireNonNull(entry, "entry"));
+    private static void addItems(CreativeModeTab.Output target, ItemLike[] entries) {
+        for (ItemLike entry : entries) {
+            target.accept(Objects.requireNonNull(entry, "entry"));
         }
     }
 
-    private static void addStacks(ItemGroup.Entries target, ItemStack[] stacks) {
+    private static void addStacks(CreativeModeTab.Output target, ItemStack[] stacks) {
         for (ItemStack stack : stacks) {
-            target.add(Objects.requireNonNull(stack, "stack"));
+            target.accept(Objects.requireNonNull(stack, "stack"));
         }
     }
 }

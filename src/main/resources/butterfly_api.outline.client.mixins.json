@@ -2,13 +2,9 @@
   "required": true,
   "minVersion": "0.8",
   "package": "moth.butterflyapi.client.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_${mixin_java_version}",
   "client": [
-    "EntityRendererOutlineMixin",
-    "MinecraftClientOutlineMixin",
-    "OutlineVertexConsumerProviderMixin",
-    "RenderLayerAccessor",
-    "WorldRendererOutlineMixin"
+${outline_mixins}
   ],
   "injectors": {
     "defaultRequire": 1

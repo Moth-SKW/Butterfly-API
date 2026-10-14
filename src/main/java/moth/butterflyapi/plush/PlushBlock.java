@@ -1,44 +1,43 @@
 package moth.butterflyapi.plush;
 
 import com.mojang.serialization.MapCodec;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.BlockWithEntity;
-import net.minecraft.block.ShapeContext;
-import net.minecraft.block.Waterloggable;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityTicker;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.fluid.FluidState;
-import net.minecraft.fluid.Fluids;
-import net.minecraft.item.ItemPlacementContext;
-import net.minecraft.sound.SoundCategory;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.state.StateManager;
-import net.minecraft.state.property.BooleanProperty;
-import net.minecraft.state.property.EnumProperty;
-import net.minecraft.state.property.IntProperty;
-import net.minecraft.state.property.Properties;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.World;
-
 import java.util.Objects;
 import java.util.function.Supplier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.SimpleWaterloggedBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.IntegerProperty;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
 
-public class PlushBlock extends BlockWithEntity implements Waterloggable {
-    public static final EnumProperty<Direction> FACING = Properties.HORIZONTAL_FACING;
-    public static final BooleanProperty WATERLOGGED = Properties.WATERLOGGED;
-    public static final IntProperty MODE = IntProperty.of("mode", 0, 1);
+public class PlushBlock extends BaseEntityBlock implements SimpleWaterloggedBlock {
+    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
+    public static final IntegerProperty MODE = IntegerProperty.create("mode", 0, 1);
 
-    private static final VoxelShape SHAPE = Block.createCuboidShape(2, 0, 2, 14, 15, 14);
+    private static final VoxelShape SHAPE = Block.box(2, 0, 2, 14, 15, 14);
 
     private final PlushDefinition plushDefinition;
     private final Supplier<SoundEvent> clickSound;
@@ -47,108 +46,130 @@ public class PlushBlock extends BlockWithEntity implements Waterloggable {
         this(plushDefinition, clickSound, Objects.requireNonNull(plushDefinition, "plushDefinition").blockSettings());
     }
 
-    private PlushBlock(PlushDefinition plushDefinition, Supplier<SoundEvent> clickSound, AbstractBlock.Settings settings) {
+    private PlushBlock(PlushDefinition plushDefinition, Supplier<SoundEvent> clickSound, BlockBehaviour.Properties settings) {
         super(settings);
         this.plushDefinition = plushDefinition;
         this.clickSound = Objects.requireNonNull(clickSound, "clickSound");
-        setDefaultState(getStateManager().getDefaultState()
-                .with(FACING, Direction.NORTH)
-                .with(WATERLOGGED, false)
-                .with(MODE, 0));
+        registerDefaultState(getStateDefinition().any()
+                .setValue(FACING, Direction.NORTH)
+                .setValue(WATERLOGGED, false)
+                .setValue(MODE, 0));
     }
 
+//? if <26.3 {
     @Override
-    protected MapCodec<? extends BlockWithEntity> getCodec() {
-        return Block.createCodec(settings -> new PlushBlock(plushDefinition, clickSound, settings));
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return Block.simpleCodec(settings -> new PlushBlock(plushDefinition, clickSound, settings));
     }
+//?}
 
     @Override
-    protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
         builder.add(FACING, WATERLOGGED, MODE);
     }
 
     @Override
-    public BlockState getPlacementState(ItemPlacementContext ctx) {
-        boolean water = ctx.getWorld().getFluidState(ctx.getBlockPos()).isOf(Fluids.WATER);
-        Direction face = ctx.getHorizontalPlayerFacing().getOpposite();
-        return getDefaultState()
-                .with(FACING, face)
-                .with(WATERLOGGED, water)
-                .with(MODE, 0);
+    public BlockState getStateForPlacement(BlockPlaceContext ctx) {
+        boolean water = ctx.getLevel().getFluidState(ctx.getClickedPos()).is(Fluids.WATER);
+        Direction face = ctx.getHorizontalDirection().getOpposite();
+        return defaultBlockState()
+                .setValue(FACING, face)
+                .setValue(WATERLOGGED, water)
+                .setValue(MODE, 0);
     }
 
     @Override
     public FluidState getFluidState(BlockState state) {
-        return state.get(WATERLOGGED) ? Fluids.WATER.getStill(false) : super.getFluidState(state);
+        return state.getValue(WATERLOGGED) ? Fluids.WATER.getSource(false) : super.getFluidState(state);
     }
 
+//? if >=1.21.11 {
     @Override
-    public BlockState getStateForNeighborUpdate(
+    public BlockState updateShape(
             BlockState state,
-            net.minecraft.world.WorldView world,
-            net.minecraft.world.tick.ScheduledTickView scheduledTickView,
+            net.minecraft.world.level.LevelReader world,
+            net.minecraft.world.level.ScheduledTickAccess scheduledTickView,
             BlockPos pos,
             Direction dir,
             BlockPos neighborPos,
             BlockState neighbor,
-            net.minecraft.util.math.random.Random random
+            net.minecraft.util.RandomSource random
     ) {
-        if (state.get(WATERLOGGED)) {
-            scheduledTickView.scheduleFluidTick(pos, Fluids.WATER, Fluids.WATER.getTickRate(world));
+        if (state.getValue(WATERLOGGED)) {
+            scheduledTickView.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
         }
-        return super.getStateForNeighborUpdate(state, world, scheduledTickView, pos, dir, neighborPos, neighbor, random);
+        return super.updateShape(state, world, scheduledTickView, pos, dir, neighborPos, neighbor, random);
     }
+//?} else {
+/*
+    @Override
+    protected BlockState updateShape(
+            BlockState state,
+            Direction direction,
+            BlockState neighborState,
+            net.minecraft.world.level.LevelAccessor world,
+            BlockPos pos,
+            BlockPos neighborPos
+    ) {
+        if (state.getValue(WATERLOGGED)) {
+            world.scheduleTick(pos, Fluids.WATER, Fluids.WATER.getTickDelay(world));
+        }
+        return super.updateShape(state, direction, neighborState, world, pos, neighborPos);
+    }
+*///?}
 
     @Override
-    public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if (world.isClient()) {
-            return ActionResult.SUCCESS;
+    public InteractionResult useWithoutItem(BlockState state, Level world, BlockPos pos, Player player, BlockHitResult hit) {
+        if (world.isClientSide()) {
+            return InteractionResult.SUCCESS;
         }
 
-        int next = state.get(MODE) ^ 1;
-        world.setBlockState(pos, state.with(MODE, next), Block.NOTIFY_ALL);
-
-        SoundEvent sfx = clickSound.get();
-        if (sfx != null) {
-            world.playSound(null, pos, sfx, SoundCategory.BLOCKS, 1.0f, 1.0f);
-        }
+        int next = state.getValue(MODE) ^ 1;
+        world.setBlock(pos, state.setValue(MODE, next), Block.UPDATE_ALL);
 
         BlockEntity be = world.getBlockEntity(pos);
         if (be instanceof PlushBlockEntity plushBE) {
+            PlushDefinition definition = plushBE.plushDefinition();
+            SoundEvent sfx = clickSound.get();
+            if (sfx != null && plushBE.tryPlayInteractionSound(world.getGameTime(), definition.soundCooldownTicks())) {
+                float pitch = definition.minimumSoundPitch()
+                        + world.getRandom().nextFloat() * (definition.maximumSoundPitch() - definition.minimumSoundPitch());
+                world.playSound(null, pos, sfx, SoundSource.BLOCKS, definition.soundVolume(), pitch);
+            }
             plushBE.squish(1);
             plushBE.onUsed();
         }
 
-        return ActionResult.CONSUME;
+        return InteractionResult.CONSUME;
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.INVISIBLE;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.INVISIBLE;
     }
 
     @Override
-    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    public VoxelShape getCollisionShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
         return SHAPE;
     }
 
     @Override
-    public VoxelShape getRaycastShape(BlockState state, BlockView world, BlockPos pos) {
+    public VoxelShape getInteractionShape(BlockState state, BlockGetter world, BlockPos pos) {
         return SHAPE;
     }
 
     @Override
-    public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new PlushBlockEntity(pos, state);
     }
 
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level world, BlockState state, BlockEntityType<T> type) {
         return type == ButterflyPlushes.blockEntityType()
                 ? (w, p, s, be) -> PlushBlockEntity.tick(w, p, s, (PlushBlockEntity) be)
                 : null;

@@ -1,0 +1,110 @@
+{
+  "targets": [
+    "final",
+    "mask",
+    "entity_seed",
+    "entity_field_a",
+    "entity_field_b",
+    "block_seed",
+    "block_field_a",
+    "block_field_b"
+  ],
+  "passes": [
+    {
+      "name": "butterfly_api_outline_copy",
+      "intarget": "final",
+      "outtarget": "mask"
+    },
+    {
+      "name": "butterfly_api_outline_seed",
+      "intarget": "mask",
+      "outtarget": "entity_seed"
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "entity_seed",
+      "outtarget": "entity_field_a",
+      "uniforms": [{ "name": "StepSize", "values": [32.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "entity_field_a",
+      "outtarget": "entity_field_b",
+      "uniforms": [{ "name": "StepSize", "values": [16.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "entity_field_b",
+      "outtarget": "entity_field_a",
+      "uniforms": [{ "name": "StepSize", "values": [8.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "entity_field_a",
+      "outtarget": "entity_field_b",
+      "uniforms": [{ "name": "StepSize", "values": [4.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "entity_field_b",
+      "outtarget": "entity_field_a",
+      "uniforms": [{ "name": "StepSize", "values": [2.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "entity_field_a",
+      "outtarget": "entity_field_b",
+      "uniforms": [{ "name": "StepSize", "values": [1.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_seed_block",
+      "intarget": "mask",
+      "outtarget": "block_seed"
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "block_seed",
+      "outtarget": "block_field_a",
+      "uniforms": [{ "name": "StepSize", "values": [32.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "block_field_a",
+      "outtarget": "block_field_b",
+      "uniforms": [{ "name": "StepSize", "values": [16.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "block_field_b",
+      "outtarget": "block_field_a",
+      "uniforms": [{ "name": "StepSize", "values": [8.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "block_field_a",
+      "outtarget": "block_field_b",
+      "uniforms": [{ "name": "StepSize", "values": [4.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "block_field_b",
+      "outtarget": "block_field_a",
+      "uniforms": [{ "name": "StepSize", "values": [2.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_jump",
+      "intarget": "block_field_a",
+      "outtarget": "block_field_b",
+      "uniforms": [{ "name": "StepSize", "values": [1.0] }]
+    },
+    {
+      "name": "butterfly_api_outline_apply",
+      "intarget": "mask",
+      "outtarget": "final",
+      "auxtargets": [
+        { "name": "EntityFieldSampler", "id": "entity_field_b" },
+        { "name": "BlockFieldSampler", "id": "block_field_b" }
+      ]
+    }
+  ]
+}

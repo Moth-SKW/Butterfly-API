@@ -1,24 +1,31 @@
 package moth.butterflyapi.client.text.internal;
 
+//? if >=1.21.11 {
+//? if >=26.3 {
+/*
+import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.renderpearl.api.textures.GpuTextureView;
+*///?} else {
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import com.mojang.blaze3d.textures.GpuTextureView;
+//?}
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import moth.butterflyapi.text.TextGradient;
 import moth.butterflyapi.text.TextRenderBounds;
 import moth.butterflyapi.text.TextRenderOffset;
 import moth.butterflyapi.text.TextRenderStyle;
 import moth.butterflyapi.text.TextShadow;
-import net.minecraft.client.font.TextDrawable;
-import net.minecraft.client.font.TextRenderer;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.text.Style;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.font.TextRenderable;
+import net.minecraft.client.renderer.rendertype.RenderType;
+import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 
-public final class TextRenderGlyphRect implements TextDrawable.DrawnGlyphRect {
-    private final TextDrawable.DrawnGlyphRect textGlyph;
+public final class TextRenderGlyphRect implements TextRenderable.Styled {
+    private final TextRenderable.Styled textGlyph;
     @Nullable
-    private final TextDrawable.DrawnGlyphRect shadowGlyph;
+    private final TextRenderable.Styled shadowGlyph;
     private final Style style;
     private final int textColor;
     private final int shadowColor;
@@ -27,8 +34,8 @@ public final class TextRenderGlyphRect implements TextDrawable.DrawnGlyphRect {
     private final TextRenderOffset effectOffset;
 
     public TextRenderGlyphRect(
-            TextDrawable.DrawnGlyphRect textGlyph,
-            @Nullable TextDrawable.DrawnGlyphRect shadowGlyph,
+            TextRenderable.Styled textGlyph,
+            @Nullable TextRenderable.Styled shadowGlyph,
             Style style,
             int textColor,
             int shadowColor,
@@ -47,8 +54,8 @@ public final class TextRenderGlyphRect implements TextDrawable.DrawnGlyphRect {
     }
 
     private TextRenderGlyphRect(
-            TextDrawable.DrawnGlyphRect textGlyph,
-            @Nullable TextDrawable.DrawnGlyphRect shadowGlyph,
+            TextRenderable.Styled textGlyph,
+            @Nullable TextRenderable.Styled shadowGlyph,
             Style style,
             int textColor,
             int shadowColor,
@@ -80,23 +87,23 @@ public final class TextRenderGlyphRect implements TextDrawable.DrawnGlyphRect {
     }
 
     @Override
-    public float getLeft() {
-        return Math.min(textGlyph.getLeft(), shadowGlyph == null ? textGlyph.getLeft() : shadowGlyph.getLeft());
+    public float activeLeft() {
+        return Math.min(textGlyph.activeLeft(), shadowGlyph == null ? textGlyph.activeLeft() : shadowGlyph.activeLeft());
     }
 
     @Override
-    public float getTop() {
-        return Math.min(textGlyph.getTop(), shadowGlyph == null ? textGlyph.getTop() : shadowGlyph.getTop());
+    public float activeTop() {
+        return Math.min(textGlyph.activeTop(), shadowGlyph == null ? textGlyph.activeTop() : shadowGlyph.activeTop());
     }
 
     @Override
-    public float getRight() {
-        return Math.max(textGlyph.getRight(), shadowGlyph == null ? textGlyph.getRight() : shadowGlyph.getRight());
+    public float activeRight() {
+        return Math.max(textGlyph.activeRight(), shadowGlyph == null ? textGlyph.activeRight() : shadowGlyph.activeRight());
     }
 
     @Override
-    public float getBottom() {
-        return Math.max(textGlyph.getBottom(), shadowGlyph == null ? textGlyph.getBottom() : shadowGlyph.getBottom());
+    public float activeBottom() {
+        return Math.max(textGlyph.activeBottom(), shadowGlyph == null ? textGlyph.activeBottom() : shadowGlyph.activeBottom());
     }
 
     @Override
@@ -140,8 +147,8 @@ public final class TextRenderGlyphRect implements TextDrawable.DrawnGlyphRect {
     }
 
     @Override
-    public RenderLayer getRenderLayer(TextRenderer.TextLayerType layerType) {
-        return textGlyph.getRenderLayer(layerType);
+    public RenderType renderType(Font.DisplayMode layerType) {
+        return textGlyph.renderType(layerType);
     }
 
     @Override
@@ -150,28 +157,28 @@ public final class TextRenderGlyphRect implements TextDrawable.DrawnGlyphRect {
     }
 
     @Override
-    public RenderPipeline getPipeline() {
-        return textGlyph.getPipeline();
+    public RenderPipeline guiPipeline() {
+        return textGlyph.guiPipeline();
     }
 
     @Override
-    public float getEffectiveMinX() {
-        return getLeft();
+    public float left() {
+        return activeLeft();
     }
 
     @Override
-    public float getEffectiveMinY() {
-        return getTop();
+    public float top() {
+        return activeTop();
     }
 
     @Override
-    public float getEffectiveMaxX() {
-        return getRight();
+    public float right() {
+        return activeRight();
     }
 
     @Override
-    public float getEffectiveMaxY() {
-        return getBottom();
+    public float bottom() {
+        return activeBottom();
     }
 
     private int resolveBaseTextColor(TextRenderBounds glyphBounds) {
@@ -216,7 +223,8 @@ public final class TextRenderGlyphRect implements TextDrawable.DrawnGlyphRect {
         return (color >>> 24) & 0xFF;
     }
 
-    public static TextRenderBounds boundsOf(TextDrawable.DrawnGlyphRect glyph) {
-        return TextRenderBounds.of(glyph.getLeft(), glyph.getTop(), glyph.getRight(), glyph.getBottom());
+    public static TextRenderBounds boundsOf(TextRenderable.Styled glyph) {
+        return TextRenderBounds.of(glyph.activeLeft(), glyph.activeTop(), glyph.activeRight(), glyph.activeBottom());
     }
 }
+//?}

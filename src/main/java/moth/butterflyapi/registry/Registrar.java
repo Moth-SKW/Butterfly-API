@@ -2,26 +2,26 @@ package moth.butterflyapi.registry;
 
 import moth.butterflyapi.block.BlockBuilder;
 import moth.butterflyapi.mod.ModContext;
-import net.minecraft.block.Block;
-import net.minecraft.block.AbstractBlock;
-import net.minecraft.enchantment.Enchantment;
-import net.minecraft.entity.decoration.painting.PaintingVariant;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.EntityType;
-import net.minecraft.item.BlockItem;
-import net.minecraft.item.Item;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.TallBlockItem;
-import net.minecraft.particle.ParticleType;
-import net.minecraft.potion.Potion;
-import net.minecraft.recipe.RecipeSerializer;
-import net.minecraft.recipe.RecipeType;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.Registry;
-import net.minecraft.screen.ScreenHandlerType;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.block.entity.BlockEntityType;
-
+import net.minecraft.core.Registry;
+import net.minecraft.core.particles.ParticleType;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.decoration.painting.PaintingVariant;
+import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.DoubleHighBlockItem;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.alchemy.Potion;
+import net.minecraft.world.item.crafting.RecipeSerializer;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.resources.Identifier;
 import java.util.Objects;
 import java.util.function.Function;
 
@@ -35,24 +35,37 @@ public final class Registrar {
     public <T> T register(Registry<? super T> registry, String path, T value) {
         Objects.requireNonNull(registry, "registry");
         Objects.requireNonNull(value, "value");
-        return Registry.register(registry, context.id(path), value);
+        Identifier id = context.id(path);
+        if (registry.containsKey(id)) {
+            throw new IllegalStateException("Duplicate registration for " + id + " in " + registry.key().
+//? if <1.21.11 {
+/*
+                    location()
+*///?} else {
+                    identifier()
+//?}
+            );
+        }
+        return Registry.register(registry, id, value);
     }
 
     public <T extends Item> T item(String path, T item) {
-        return register(Registries.ITEM, path, item);
+        return register(BuiltInRegistries.ITEM, path, item);
     }
 
     public <T extends Block> T block(String path, T block) {
         return block(path, block, registeredBlock -> new BlockItem(registeredBlock, context.itemSettings(path)));
     }
 
-    public <T extends Block> BlockBuilder<T> blockBuilder(String path, Function<AbstractBlock.Settings, T> factory) {
+    public <T extends Block> BlockBuilder<T> blockBuilder(String path, Function<BlockBehaviour.Properties, T> factory) {
         return new BlockBuilder<>(context, path, factory);
     }
 
-    public <T extends Block> T block(String path, T block, Item.Settings itemSettings) {
+    public <T extends Block> T block(String path, T block, Item.Properties itemSettings) {
         Objects.requireNonNull(itemSettings, "itemSettings");
-        itemSettings.registryKey(context.itemKey(path));
+//? if >=1.21.11 {
+        itemSettings.setId(context.itemKey(path));
+//?}
         return block(path, block, registeredBlock -> new BlockItem(registeredBlock, itemSettings));
     }
 
@@ -64,64 +77,70 @@ public final class Registrar {
     }
 
     public <T extends Block> T blockOnly(String path, T block) {
-        return register(Registries.BLOCK, path, block);
+        return register(BuiltInRegistries.BLOCK, path, block);
     }
 
     public <T extends Block> T door(String path, T block) {
-        return block(path, block, registeredBlock -> new TallBlockItem(registeredBlock, context.itemSettings(path)));
+        return block(path, block, registeredBlock -> new DoubleHighBlockItem(registeredBlock, context.itemSettings(path)));
     }
 
     public SoundEvent sound(String path) {
-        return sound(path, SoundEvent.of(context.id(path)));
+        return sound(path, SoundEvent.createVariableRangeEvent(context.id(path)));
     }
 
     public SoundEvent sound(String path, SoundEvent soundEvent) {
-        return register(Registries.SOUND_EVENT, path, soundEvent);
+        return register(BuiltInRegistries.SOUND_EVENT, path, soundEvent);
     }
 
     public Enchantment enchantment(String path, Enchantment enchantment) {
-        // Enchantments are loaded into the dynamic registry from data files in 1.21.11.
-        return Objects.requireNonNull(enchantment, "enchantment");
+        Objects.requireNonNull(enchantment, "enchantment");
+        throw new IllegalStateException(
+                "Enchantment " + context.id(path) + " must be declared through its dynamic-registry data file; "
+                        + "runtime enchantment registration is not supported by Minecraft"
+        );
     }
 
     public <T extends EntityType<?>> T entity(String path, T entityType) {
-        return register(Registries.ENTITY_TYPE, path, entityType);
+        return register(BuiltInRegistries.ENTITY_TYPE, path, entityType);
     }
 
     public <T extends BlockEntityType<?>> T blockEntityType(String path, T blockEntityType) {
-        return register(Registries.BLOCK_ENTITY_TYPE, path, blockEntityType);
+        return register(BuiltInRegistries.BLOCK_ENTITY_TYPE, path, blockEntityType);
     }
 
-    public <T extends ScreenHandlerType<?>> T screenHandler(String path, T screenHandlerType) {
-        return register(Registries.SCREEN_HANDLER, path, screenHandlerType);
+    public <T extends MenuType<?>> T screenHandler(String path, T screenHandlerType) {
+        return register(BuiltInRegistries.MENU, path, screenHandlerType);
     }
 
-    public <T extends StatusEffect> T statusEffect(String path, T statusEffect) {
-        return register(Registries.STATUS_EFFECT, path, statusEffect);
+    public <T extends MobEffect> T statusEffect(String path, T statusEffect) {
+        return register(BuiltInRegistries.MOB_EFFECT, path, statusEffect);
     }
 
     public <T extends Potion> T potion(String path, T potion) {
-        return register(Registries.POTION, path, potion);
+        return register(BuiltInRegistries.POTION, path, potion);
     }
 
     public <T extends RecipeSerializer<?>> T recipeSerializer(String path, T serializer) {
-        return register(Registries.RECIPE_SERIALIZER, path, serializer);
+        return register(BuiltInRegistries.RECIPE_SERIALIZER, path, serializer);
     }
 
     public <T extends RecipeType<?>> T recipeType(String path, T type) {
-        return register(Registries.RECIPE_TYPE, path, type);
+        return register(BuiltInRegistries.RECIPE_TYPE, path, type);
     }
 
     public <T extends ParticleType<?>> T particle(String path, T particleType) {
-        return register(Registries.PARTICLE_TYPE, path, particleType);
+        return register(BuiltInRegistries.PARTICLE_TYPE, path, particleType);
     }
 
     public PaintingVariant painting(String path, PaintingVariant paintingVariant) {
-        // Painting variants are also data-driven dynamic registry entries.
-        return Objects.requireNonNull(paintingVariant, "paintingVariant");
+        Objects.requireNonNull(paintingVariant, "paintingVariant");
+        throw new IllegalStateException(
+                "Painting variant " + context.id(path) + " must be declared through its dynamic-registry data file; "
+                        + "runtime painting registration is not supported by Minecraft"
+        );
     }
 
-    public <T extends ItemGroup> T itemGroup(String path, T itemGroup) {
-        return register(Registries.ITEM_GROUP, path, itemGroup);
+    public <T extends CreativeModeTab> T itemGroup(String path, T itemGroup) {
+        return register(BuiltInRegistries.CREATIVE_MODE_TAB, path, itemGroup);
     }
 }

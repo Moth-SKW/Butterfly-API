@@ -1,14 +1,12 @@
 {
-  "required": false,
+  "required": true,
   "minVersion": "0.8",
   "package": "moth.butterflyapi.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_${mixin_java_version}",
   "mixins": [
-    "StyleTextEffectAccessor",
-    "StyleTextEffectMixin",
-    "TextVisitFactoryMixin"
+${text_mixins}
   ],
   "injectors": {
-    "defaultRequire": 0
+    "defaultRequire": 1
   }
 }

@@ -1,27 +1,33 @@
 package moth.butterflyapi.client.mixin;
 
+//? if >=1.21.1 {
+
 import moth.butterflyapi.ButterflyApi;
 import moth.butterflyapi.client.CreativeInventoryScreenExtension;
 import moth.butterflyapi.itemgroup.TabCategory;
 import moth.butterflyapi.itemgroup.TabLayout;
 import moth.butterflyapi.itemgroup.TabProperties;
 import moth.butterflyapi.itemgroup.TabSurface;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.gl.RenderPipelines;
-import net.minecraft.client.input.CharInput;
-import net.minecraft.client.input.KeyInput;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.search.SearchManager;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+//? if >=1.21.11 {
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+//?}
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.SessionSearchTrees;
+//? if >=1.21.11 {
+import net.minecraft.client.renderer.RenderPipelines;
+//?}
+import net.minecraft.core.NonNullList;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -41,7 +47,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-@Mixin(value = CreativeInventoryScreen.class, priority = 900)
+@Mixin(value = CreativeModeInventoryScreen.class, priority = 900)
 public abstract class CreativeInventoryScreenMixin implements CreativeInventoryScreenExtension {
     private static final int GRID_COLUMNS = 9;
     private static final int VISIBLE_ROWS = 5;
@@ -59,13 +65,13 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     private static final int CATEGORY_TEXT_PADDING = 4;
 
     @Shadow
-    private static ItemGroup selectedTab;
+    private static CreativeModeTab selectedTab;
 
     @Shadow
-    private TextFieldWidget searchBox;
+    private EditBox searchBox;
 
     @Shadow
-    private float scrollPosition;
+    private float scrollOffs;
 
     @Unique
     private Map<Integer, TabCategory> butterflyApi$categoryRows = Map.of();
@@ -82,46 +88,95 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     @Unique
     private static boolean butterflyApi$warnedSearchManager;
 
+//? if >=26.1 {
+/*
     @Redirect(
-            method = "drawBackground",
+            method = "extractBackground",
+*///?} else {
+    @Redirect(
+            method = "renderBg",
+//?}
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/item/ItemGroup;getTexture()Lnet/minecraft/util/Identifier;"
+                    target = "Lnet/minecraft/world/item/CreativeModeTab;getBackgroundTexture()Lnet/minecraft/resources/Identifier;"
             ),
             require = 1
     )
-    private Identifier butterflyApi$replaceCreativeBackground(ItemGroup group) {
+    private Identifier butterflyApi$replaceCreativeBackground(CreativeModeTab group) {
         TabProperties.Definition definition = butterflyApi$getDefinition(group);
         if (definition != null
                 && definition.customOverlay()
                 && definition.backgroundTexture() != null) {
             return definition.backgroundTexture();
         }
-        return group.getTexture();
+        return group.getBackgroundTexture();
     }
 
+//? if >=26.1 {
+/*
     @Redirect(
-            method = "drawForeground",
+            method = "extractLabels",
+*///?} else {
+    @Redirect(
+            method = "renderLabels",
+//?}
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/item/ItemGroup;getDisplayName()Lnet/minecraft/text/Text;"
+                    target = "Lnet/minecraft/world/item/CreativeModeTab;getDisplayName()Lnet/minecraft/network/chat/Component;"
             ),
-            require = 0
+            require = 1
     )
-    private Text butterflyApi$colorTabName(ItemGroup group) {
-        Text displayName = group.getDisplayName();
-        RegistryKey<ItemGroup> key = butterflyApi$getTabKey(group);
+    private Component butterflyApi$colorTabName(CreativeModeTab group) {
+        Component displayName = group.getDisplayName();
+        ResourceKey<CreativeModeTab> key = butterflyApi$getTabKey(group);
         TabProperties.Definition definition = key == null ? null : TabProperties.get(key);
         if (definition == null || definition.tabNameColor() == null) {
             return displayName;
         }
         int rgb = definition.tabNameColor() & 0x00FFFFFF;
-        return displayName.copy().styled(style -> style.withColor(rgb));
+        return displayName.copy().withStyle(style -> style.withColor(rgb));
     }
 
-    @Inject(method = "drawBackground", at = @At("TAIL"), require = 0)
+//? if >=26.1 {
+/*
+    @Inject(method = "extractBackground", at = @At("TAIL"), require = 1)
     private void butterflyApi$drawCustomAppearance(
-            DrawContext context,
+            GuiGraphicsExtractor context,
+            int mouseX,
+            int mouseY,
+            float delta,
+            CallbackInfo ci
+    ) {
+        TabProperties.Definition definition = butterflyApi$getSelectedDefinition();
+        if (definition == null) {
+            return;
+        }
+
+        if (!((Object) this instanceof HandledScreenAccessor handledScreen)) {
+            butterflyApi$warnMissingHandledScreenAccessor();
+            return;
+        }
+        int screenX = handledScreen.butterflyApi$getX();
+        int screenY = handledScreen.butterflyApi$getY();
+
+        if (definition.customOverlay()) {
+            butterflyApi$drawGridOverlay(context, definition, screenX, screenY);
+        }
+
+        if (!definition.customOverlay() && definition.tintColor() != null) {
+            context.fill(
+                    screenX,
+                    screenY,
+                    screenX + CREATIVE_BACKGROUND_WIDTH,
+                    screenY + CREATIVE_BACKGROUND_HEIGHT,
+                    definition.tintColor()
+            );
+        }
+    }
+*///?} else {
+    @Inject(method = "renderBg", at = @At("TAIL"), require = 1)
+    private void butterflyApi$drawCustomAppearance(
+            GuiGraphics context,
             float delta,
             int mouseX,
             int mouseY,
@@ -153,10 +208,11 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             );
         }
     }
+//?}
 
     @Unique
     private void butterflyApi$drawGridOverlay(
-            DrawContext context,
+            GuiGraphics context,
             TabProperties.Definition definition,
             int screenX,
             int screenY
@@ -178,13 +234,13 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         int contentX = gridX + 1;
         int contentY = gridY + 1;
 
-        CreativeInventoryScreen screen = (CreativeInventoryScreen) (Object) this;
-        Object rawHandler = screen.getScreenHandler();
+        CreativeModeInventoryScreen screen = (CreativeModeInventoryScreen) (Object) this;
+        Object rawHandler = screen.getMenu();
         if (!(rawHandler instanceof CreativeScreenHandlerAccessor handler)) {
             butterflyApi$warnMissingCreativeHandlerAccessor();
             return;
         }
-        int firstVisibleRow = handler.butterflyApi$getVisibleRow(scrollPosition);
+        int firstVisibleRow = handler.butterflyApi$getVisibleRow(scrollOffs);
 
         for (int visibleRow = 0; visibleRow < VISIBLE_ROWS; visibleRow++) {
             int logicalRow = firstVisibleRow + visibleRow;
@@ -216,9 +272,9 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         }
     }
 
-    @Inject(method = "getTabX", at = @At("RETURN"), cancellable = true, require = 0)
+    @Inject(method = "getTabX", at = @At("RETURN"), cancellable = true, require = 1)
     private void butterflyApi$normalizeTabButtonPosition(
-            ItemGroup group,
+            CreativeModeTab group,
             CallbackInfoReturnable<Integer> cir
     ) {
         TabProperties.Definition definition = butterflyApi$getDefinition(group);
@@ -226,14 +282,14 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             return;
         }
 
-        int normalX = group.getColumn() * 27;
+        int normalX = group.column() * 27;
         Integer currentX = cir.getReturnValue();
         if (currentX != null && currentX == normalX + 7) {
             cir.setReturnValue(normalX);
         }
     }
 
-    @Inject(method = "search", at = @At("HEAD"), cancellable = true, require = 0)
+    @Inject(method = "refreshSearchResults", at = @At("HEAD"), cancellable = true, require = 1)
     private void butterflyApi$searchCurrentTab(CallbackInfo ci) {
         TabProperties.Definition definition = butterflyApi$getSelectedDefinition();
         if (definition == null) {
@@ -244,18 +300,19 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         ci.cancel();
     }
 
-    @Inject(method = "charTyped", at = @At("HEAD"), cancellable = true, require = 0)
+//? if >=1.21.11 {
+    @Inject(method = "charTyped", at = @At("HEAD"), cancellable = true, require = 1)
     private void butterflyApi$typeInScopedSearch(
-            CharInput input,
+            CharacterEvent input,
             CallbackInfoReturnable<Boolean> cir
     ) {
         if (!butterflyApi$usesInjectedSearchInput()) {
             return;
         }
 
-        String previousText = searchBox.getText();
+        String previousText = searchBox.getValue();
         boolean handled = searchBox.charTyped(input);
-        if (!Objects.equals(previousText, searchBox.getText())) {
+        if (!Objects.equals(previousText, searchBox.getValue())) {
             butterflyApi$rebuildCurrentTab();
         }
         if (handled) {
@@ -263,35 +320,77 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         }
     }
 
-    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 1)
     private void butterflyApi$pressKeyInScopedSearch(
-            KeyInput input,
+            KeyEvent input,
             CallbackInfoReturnable<Boolean> cir
     ) {
         if (!butterflyApi$usesInjectedSearchInput()) {
             return;
         }
 
-        String previousText = searchBox.getText();
+        String previousText = searchBox.getValue();
         if (searchBox.keyPressed(input)) {
-            if (!Objects.equals(previousText, searchBox.getText())) {
+            if (!Objects.equals(previousText, searchBox.getValue())) {
                 butterflyApi$rebuildCurrentTab();
             }
             cir.setReturnValue(true);
         }
     }
+//?} else {
+/*
+    @Inject(method = "charTyped", at = @At("HEAD"), cancellable = true, require = 1)
+    private void butterflyApi$typeInScopedSearch(
+            char typedCharacter,
+            int modifiers,
+            CallbackInfoReturnable<Boolean> cir
+    ) {
+        if (!butterflyApi$usesInjectedSearchInput()) {
+            return;
+        }
 
-    @Inject(method = "init", at = @At("TAIL"), require = 0)
+        String previousText = searchBox.getValue();
+        boolean handled = searchBox.charTyped(typedCharacter, modifiers);
+        if (!Objects.equals(previousText, searchBox.getValue())) {
+            butterflyApi$rebuildCurrentTab();
+        }
+        if (handled) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 1)
+    private void butterflyApi$pressKeyInScopedSearch(
+            int keyCode,
+            int scanCode,
+            int modifiers,
+            CallbackInfoReturnable<Boolean> cir
+    ) {
+        if (!butterflyApi$usesInjectedSearchInput()) {
+            return;
+        }
+
+        String previousText = searchBox.getValue();
+        if (searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+            if (!Objects.equals(previousText, searchBox.getValue())) {
+                butterflyApi$rebuildCurrentTab();
+            }
+            cir.setReturnValue(true);
+        }
+    }
+*///?}
+
+    @Inject(method = "init", at = @At("TAIL"), require = 1)
     private void butterflyApi$prepareInitialTab(CallbackInfo ci) {
         butterflyApi$prepareCurrentTab();
     }
 
-    @Inject(method = "setSelectedTab", at = @At("RETURN"), require = 0)
-    private void butterflyApi$prepareSelectedTab(ItemGroup group, CallbackInfo ci) {
+    @Inject(method = "selectTab", at = @At("RETURN"), require = 1)
+    private void butterflyApi$prepareSelectedTab(CreativeModeTab group, CallbackInfo ci) {
         butterflyApi$prepareTab(group);
     }
 
-    @Inject(method = "refreshSelectedTab", at = @At("RETURN"), require = 0)
+    @Inject(method = "refreshCurrentTabContents", at = @At("RETURN"), require = 1)
     private void butterflyApi$restoreLayoutAfterVanillaRefresh(
             Collection<ItemStack> displayStacks,
             CallbackInfo ci
@@ -305,7 +404,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     }
 
     @Unique
-    private void butterflyApi$prepareTab(ItemGroup group) {
+    private void butterflyApi$prepareTab(CreativeModeTab group) {
         TabProperties.Definition definition = butterflyApi$getDefinition(group);
         if (definition == null) {
             butterflyApi$categoryRows = Map.of();
@@ -315,7 +414,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
         if (searchBox != null) {
             searchBox.setVisible(true);
-            searchBox.setFocusUnlocked(false);
+            searchBox.setCanLoseFocus(false);
             searchBox.setFocused(true);
         }
 
@@ -337,21 +436,21 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
     @Unique
     private void butterflyApi$rebuildVisibleItems(TabProperties.Definition definition) {
-        CreativeInventoryScreen screen = (CreativeInventoryScreen) (Object) this;
-        CreativeInventoryScreen.CreativeScreenHandler screenHandler = screen.getScreenHandler();
+        CreativeModeInventoryScreen screen = (CreativeModeInventoryScreen) (Object) this;
+        CreativeModeInventoryScreen.ItemPickerMenu screenHandler = screen.getMenu();
         Object rawHandler = screenHandler;
         if (!(rawHandler instanceof CreativeScreenHandlerAccessor handler)) {
             butterflyApi$warnMissingCreativeHandlerAccessor();
             return;
         }
 
-        DefaultedList<ItemStack> itemList = handler.butterflyApi$getItemList();
+        NonNullList<ItemStack> itemList = handler.butterflyApi$getItemList();
         itemList.clear();
 
         ResolvedLayout resolved = butterflyApi$resolveLayout(
                 definition,
-                selectedTab.getDisplayStacks(),
-                selectedTab.getSearchTabStacks()
+                selectedTab.getDisplayItems(),
+                selectedTab.getSearchTabDisplayItems()
         );
         String query = butterflyApi$getNormalizedQuery();
         boolean searching = !query.isEmpty();
@@ -365,13 +464,13 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             butterflyApi$slotOverrides = Map.of();
         }
 
-        scrollPosition = 0.0F;
-        screenHandler.scrollItems(scrollPosition);
+        scrollOffs = 0.0F;
+        screenHandler.scrollTo(scrollOffs);
     }
 
     @Unique
     private void butterflyApi$appendCustomLayout(
-            DefaultedList<ItemStack> itemList,
+            NonNullList<ItemStack> itemList,
             TabProperties.Definition definition,
             ResolvedLayout resolved,
             SearchMatcher matcher,
@@ -419,7 +518,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
     @Unique
     private static void butterflyApi$appendVanillaLayout(
-            DefaultedList<ItemStack> itemList,
+            NonNullList<ItemStack> itemList,
             TabProperties.Definition definition,
             ResolvedLayout resolved,
             SearchMatcher matcher,
@@ -516,7 +615,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     @Unique
     private static int butterflyApi$findEquivalent(List<ItemStack> stacks, ItemStack expected) {
         for (int index = 0; index < stacks.size(); index++) {
-            if (ItemStack.areItemsAndComponentsEqual(stacks.get(index), expected)) {
+            if (ItemStack.isSameItemSameComponents(stacks.get(index), expected)) {
                 return index;
             }
         }
@@ -537,19 +636,19 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             return stack -> true;
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         boolean tagSearch = query.startsWith("#");
         String searchText = tagSearch ? query.substring(1) : query;
         List<ItemStack> globalMatches = List.of();
 
-        ClientPlayNetworkHandler networkHandler = client.getNetworkHandler();
+        ClientPacketListener networkHandler = client.getConnection();
         if (networkHandler != null) {
             try {
-                SearchManager searchManager = networkHandler.getSearchManager();
+                SessionSearchTrees searchManager = networkHandler.searchTrees();
                 globalMatches = (tagSearch
-                        ? searchManager.getItemTagReloadFuture()
-                        : searchManager.getItemTooltipReloadFuture())
-                        .findAll(searchText);
+                        ? searchManager.creativeTagSearch()
+                        : searchManager.creativeNameSearch())
+                        .search(searchText);
             } catch (RuntimeException ignored) {
                 globalMatches = List.of();
             }
@@ -565,8 +664,8 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             if (tagSearch) {
                 return false;
             }
-            Identifier itemId = Registries.ITEM.getId(stack.getItem());
-            String searchableText = (stack.getName().getString() + " " + itemId).toLowerCase(Locale.ROOT);
+            Identifier itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
+            String searchableText = (stack.getHoverName().getString() + " " + itemId).toLowerCase(Locale.ROOT);
             return searchableText.contains(searchText);
         };
     }
@@ -574,7 +673,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     @Unique
     private static boolean butterflyApi$containsEquivalent(List<ItemStack> candidates, ItemStack stack) {
         for (ItemStack candidate : candidates) {
-            if (ItemStack.areItemsAndComponentsEqual(candidate, stack)) {
+            if (ItemStack.isSameItemSameComponents(candidate, stack)) {
                 return true;
             }
         }
@@ -604,7 +703,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
     @Unique
     private static void butterflyApi$appendSection(
-            DefaultedList<ItemStack> itemList,
+            NonNullList<ItemStack> itemList,
             List<TabLayout.Element> elements,
             SearchMatcher matcher,
             boolean searching,
@@ -635,7 +734,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
     @Unique
     private static void butterflyApi$appendStacksOnly(
-            DefaultedList<ItemStack> itemList,
+            NonNullList<ItemStack> itemList,
             List<TabLayout.Element> elements,
             SearchMatcher matcher,
             boolean searching
@@ -651,7 +750,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     }
 
     @Unique
-    private static void butterflyApi$padToNextRow(DefaultedList<ItemStack> itemList) {
+    private static void butterflyApi$padToNextRow(NonNullList<ItemStack> itemList) {
         int remainder = itemList.size() % GRID_COLUMNS;
         if (remainder != 0) {
             butterflyApi$addEmptySlots(itemList, GRID_COLUMNS - remainder);
@@ -659,7 +758,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
     }
 
     @Unique
-    private static void butterflyApi$addEmptySlots(DefaultedList<ItemStack> itemList, int count) {
+    private static void butterflyApi$addEmptySlots(NonNullList<ItemStack> itemList, int count) {
         for (int slot = 0; slot < count; slot++) {
             itemList.add(ItemStack.EMPTY);
         }
@@ -667,7 +766,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
     @Unique
     private static void butterflyApi$drawCategory(
-            DrawContext context,
+            GuiGraphics context,
             TabCategory category,
             int x,
             int y
@@ -675,36 +774,36 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         butterflyApi$drawSurface(context, category.background(), x, y, CATEGORY_WIDTH, CATEGORY_HEIGHT);
         if (category.borderColor() != null) {
             int border = category.borderColor();
-            context.drawHorizontalLine(x, x + CATEGORY_WIDTH - 1, y, border);
-            context.drawHorizontalLine(x, x + CATEGORY_WIDTH - 1, y + CATEGORY_HEIGHT - 1, border);
-            context.drawVerticalLine(x, y, y + CATEGORY_HEIGHT - 1, border);
-            context.drawVerticalLine(x + CATEGORY_WIDTH - 1, y, y + CATEGORY_HEIGHT - 1, border);
+            context.hLine(x, x + CATEGORY_WIDTH - 1, y, border);
+            context.hLine(x, x + CATEGORY_WIDTH - 1, y + CATEGORY_HEIGHT - 1, border);
+            context.vLine(x, y, y + CATEGORY_HEIGHT - 1, border);
+            context.vLine(x + CATEGORY_WIDTH - 1, y, y + CATEGORY_HEIGHT - 1, border);
         }
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
         int color = category.textColor();
         int textY = y + 4;
         context.enableScissor(x + 2, y + 1, x + CATEGORY_WIDTH - 2, y + CATEGORY_HEIGHT - 1);
 
         switch (category.textAlignment()) {
-            case LEFT -> context.drawTextWithShadow(
-                    client.textRenderer,
-                    category.text(),
+            case LEFT -> context.drawString(
+                    client.font,
+                    category.label(),
                     x + CATEGORY_TEXT_PADDING,
                     textY,
                     color
             );
-            case CENTER -> context.drawCenteredTextWithShadow(
-                    client.textRenderer,
-                    category.text(),
+            case CENTER -> context.drawCenteredString(
+                    client.font,
+                    category.label(),
                     x + CATEGORY_WIDTH / 2,
                     textY,
                     color
             );
-            case RIGHT -> context.drawTextWithShadow(
-                    client.textRenderer,
-                    category.text(),
-                    x + CATEGORY_WIDTH - CATEGORY_TEXT_PADDING - client.textRenderer.getWidth(category.text()),
+            case RIGHT -> context.drawString(
+                    client.font,
+                    category.label(),
+                    x + CATEGORY_WIDTH - CATEGORY_TEXT_PADDING - client.font.width(category.label()),
                     textY,
                     color
             );
@@ -715,7 +814,7 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
     @Unique
     private static void butterflyApi$drawSurface(
-            DrawContext context,
+            GuiGraphics context,
             TabSurface surface,
             int x,
             int y,
@@ -723,7 +822,8 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             int height
     ) {
         if (surface.texture() != null) {
-            context.drawTexture(
+//? if >=1.21.11 {
+            context.blit(
                     RenderPipelines.GUI_TEXTURED,
                     surface.texture(),
                     x,
@@ -735,10 +835,26 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
                     width,
                     height
             );
+//?} else {
+/*
+            context.blit(
+                    surface.texture(),
+                    x,
+                    y,
+                    0,
+                    0.0F,
+                    0.0F,
+                    width,
+                    height,
+                    width,
+                    height
+            );
+*///?}
         } else if (surface.color() != null) {
             context.fill(x, y, x + width, y + height, surface.color());
         }
     }
+
 
     @Override
     public boolean butterflyApi$usesCustomGridOverlay() {
@@ -756,25 +872,25 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
             butterflyApi$warnMissingHandledScreenAccessor();
             return false;
         }
-        net.minecraft.screen.slot.Slot focusedSlot = handledScreen.butterflyApi$getFocusedSlot();
-        if (focusedSlot == null || focusedSlot.id < 0 || focusedSlot.id >= GRID_COLUMNS * VISIBLE_ROWS) {
+        net.minecraft.world.inventory.Slot focusedSlot = handledScreen.butterflyApi$getFocusedSlot();
+        if (focusedSlot == null || focusedSlot.index < 0 || focusedSlot.index >= GRID_COLUMNS * VISIBLE_ROWS) {
             return false;
         }
 
-        CreativeInventoryScreen screen = (CreativeInventoryScreen) (Object) this;
-        Object rawHandler = screen.getScreenHandler();
+        CreativeModeInventoryScreen screen = (CreativeModeInventoryScreen) (Object) this;
+        Object rawHandler = screen.getMenu();
         if (!(rawHandler instanceof CreativeScreenHandlerAccessor handler)) {
             butterflyApi$warnMissingCreativeHandlerAccessor();
             return false;
         }
-        int firstVisibleRow = handler.butterflyApi$getVisibleRow(scrollPosition);
-        int focusedLogicalRow = firstVisibleRow + focusedSlot.id / GRID_COLUMNS;
+        int firstVisibleRow = handler.butterflyApi$getVisibleRow(scrollOffs);
+        int focusedLogicalRow = firstVisibleRow + focusedSlot.index / GRID_COLUMNS;
         return butterflyApi$categoryRows.containsKey(focusedLogicalRow);
     }
 
     @Unique
     private String butterflyApi$getNormalizedQuery() {
-        return searchBox == null ? "" : searchBox.getText().trim().toLowerCase(Locale.ROOT);
+        return searchBox == null ? "" : searchBox.getValue().trim().toLowerCase(Locale.ROOT);
     }
 
     @Unique
@@ -818,18 +934,18 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
 
     @Unique
     @Nullable
-    private static TabProperties.Definition butterflyApi$getDefinition(ItemGroup group) {
-        RegistryKey<ItemGroup> key = butterflyApi$getTabKey(group);
+    private static TabProperties.Definition butterflyApi$getDefinition(CreativeModeTab group) {
+        ResourceKey<CreativeModeTab> key = butterflyApi$getTabKey(group);
         return key == null ? null : TabProperties.get(key);
     }
 
     @Unique
     @Nullable
-    private static RegistryKey<ItemGroup> butterflyApi$getTabKey(ItemGroup group) {
+    private static ResourceKey<CreativeModeTab> butterflyApi$getTabKey(CreativeModeTab group) {
         if (group == null) {
             return null;
         }
-        Optional<RegistryKey<ItemGroup>> key = Registries.ITEM_GROUP.getKey(group);
+        Optional<ResourceKey<CreativeModeTab>> key = BuiltInRegistries.CREATIVE_MODE_TAB.getResourceKey(group);
         return key.orElse(null);
     }
 
@@ -846,3 +962,4 @@ public abstract class CreativeInventoryScreenMixin implements CreativeInventoryS
         }
     }
 }
+//?}

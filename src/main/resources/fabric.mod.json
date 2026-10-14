@@ -3,6 +3,7 @@
   "id": "butterfly_api",
   "version": "${version}",
   "name": "Butterfly API",
+  "icon": "assets/butterfly_api/butterfly_icon.png",
   "description": "An API built to heavily simplify the creation of my mods and make my life easier.",
   "authors": [
     "Moth"
@@ -12,7 +13,7 @@
   "depends": {
     "fabricloader": ">=${loader_version}",
     "minecraft": "~${minecraft_version}",
-    "java": ">=21",
+    "java": ">=${java_version}",
     "fabric-api": ">=${fabric_version}"
   },
   "entrypoints": {

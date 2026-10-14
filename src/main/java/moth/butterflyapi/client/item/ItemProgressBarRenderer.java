@@ -2,10 +2,9 @@ package moth.butterflyapi.client.item;
 
 import moth.butterflyapi.item.bar.ItemProgressBar;
 import moth.butterflyapi.item.bar.ItemProgressBars;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.MathHelper;
-
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
 import java.util.List;
 
 public final class ItemProgressBarRenderer {
@@ -15,7 +14,7 @@ public final class ItemProgressBarRenderer {
     private ItemProgressBarRenderer() {
     }
 
-    public static boolean render(DrawContext context, ItemStack stack, int x, int y) {
+    public static boolean render(GuiGraphics context, ItemStack stack, int x, int y) {
         List<ItemProgressBar> bars = ItemProgressBars.bars(stack);
         if (bars.isEmpty()) {
             return false;
@@ -32,7 +31,7 @@ public final class ItemProgressBarRenderer {
         return row > 0;
     }
 
-    private static void renderBar(DrawContext context, ItemProgressBar bar, int x, int y) {
+    private static void renderBar(GuiGraphics context, ItemProgressBar bar, int x, int y) {
         int barX = x + 2;
         int barY = y + 13;
         context.fill(barX, barY, barX + BAR_WIDTH, barY + 2, BACKGROUND_COLOR);
@@ -52,7 +51,7 @@ public final class ItemProgressBarRenderer {
     }
 
     private static int barWidth(double progress, boolean pixelSnap) {
-        double clamped = MathHelper.clamp(progress, 0.0D, 1.0D);
+        double clamped = Mth.clamp(progress, 0.0D, 1.0D);
         if (clamped <= 0.0D) {
             return 0;
         }
@@ -60,8 +59,8 @@ public final class ItemProgressBarRenderer {
             return BAR_WIDTH;
         }
         return pixelSnap
-                ? MathHelper.clamp((int) Math.round(clamped * BAR_WIDTH), 1, BAR_WIDTH)
-                : MathHelper.clamp((int) Math.ceil(clamped * BAR_WIDTH), 1, BAR_WIDTH);
+                ? Mth.clamp((int) Math.round(clamped * BAR_WIDTH), 1, BAR_WIDTH)
+                : Mth.clamp((int) Math.ceil(clamped * BAR_WIDTH), 1, BAR_WIDTH);
     }
 
     private static int withAlpha(int color) {

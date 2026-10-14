@@ -1,0 +1,10 @@
+{
+  "integration_plush": {
+    "sounds": [
+      {
+        "name": "minecraft:block.note_block.pling",
+        "type": "event"
+      }
+    ]
+  }
+}

@@ -3,19 +3,19 @@ package moth.butterflyapi.mixin;
 import moth.butterflyapi.text.ShakyTextEffect;
 import moth.butterflyapi.text.TextColors;
 import moth.butterflyapi.text.TextEffects;
-import net.minecraft.text.CharacterVisitor;
-import net.minecraft.text.Style;
-import net.minecraft.text.TextVisitFactory;
-import net.minecraft.util.Formatting;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Style;
+import net.minecraft.util.FormattedCharSink;
+import net.minecraft.util.StringDecomposer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(TextVisitFactory.class)
+@Mixin(StringDecomposer.class)
 public abstract class TextVisitFactoryMixin {
     @Inject(
-            method = "visitFormatted(Ljava/lang/String;ILnet/minecraft/text/Style;Lnet/minecraft/text/Style;Lnet/minecraft/text/CharacterVisitor;)Z",
+            method = "iterateFormatted(Ljava/lang/String;ILnet/minecraft/network/chat/Style;Lnet/minecraft/network/chat/Style;Lnet/minecraft/util/FormattedCharSink;)Z",
             at = @At("HEAD"),
             cancellable = true
     )
@@ -24,18 +24,18 @@ public abstract class TextVisitFactoryMixin {
             int startIndex,
             Style startingStyle,
             Style resetStyle,
-            CharacterVisitor visitor,
+            FormattedCharSink visitor,
             CallbackInfoReturnable<Boolean> cir
     ) {
         cir.setReturnValue(butterflyApi$visit(text, startIndex, startingStyle, resetStyle, visitor));
     }
 
-    private static boolean butterflyApi$visit(String text, int startIndex, Style startingStyle, Style resetStyle, CharacterVisitor visitor) {
+    private static boolean butterflyApi$visit(String text, int startIndex, Style startingStyle, Style resetStyle, FormattedCharSink visitor) {
         int length = text.length();
         Style current = startingStyle;
         for (int index = startIndex; index < length; index++) {
             char character = text.charAt(index);
-            if (character == Formatting.FORMATTING_CODE_PREFIX) {
+            if (character == ChatFormatting.PREFIX_CODE) {
                 if (index + 1 >= length) {
                     break;
                 }
@@ -83,14 +83,14 @@ public abstract class TextVisitFactoryMixin {
         if (rgb != null) {
             return TextEffects.clear(current.withColor(rgb));
         }
-        Formatting formatting = Formatting.byCode(code);
+        ChatFormatting formatting = ChatFormatting.getByCode(code);
         if (formatting == null) {
             return current;
         }
-        if (formatting == Formatting.RESET) {
+        if (formatting == ChatFormatting.RESET) {
             return TextEffects.clear(resetStyle);
         }
-        return current.withExclusiveFormatting(formatting);
+        return current.applyLegacyFormat(formatting);
     }
 
     private static int butterflyApi$formattingLength(String text, int index) {
@@ -113,7 +113,7 @@ public abstract class TextVisitFactoryMixin {
         }
         StringBuilder hex = new StringBuilder(6);
         for (int offset = 2; offset <= 12; offset += 2) {
-            if (text.charAt(index + offset) != Formatting.FORMATTING_CODE_PREFIX) {
+            if (text.charAt(index + offset) != ChatFormatting.PREFIX_CODE) {
                 return null;
             }
             char digit = text.charAt(index + offset + 1);

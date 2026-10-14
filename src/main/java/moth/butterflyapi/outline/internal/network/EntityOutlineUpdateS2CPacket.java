@@ -2,11 +2,12 @@ package moth.butterflyapi.outline.internal.network;
 
 import moth.butterflyapi.ButterflyApi;
 import moth.butterflyapi.outline.OutlineStyle;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
+import moth.butterflyapi.outline.EntityOutline;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -16,36 +17,36 @@ public record EntityOutlineUpdateS2CPacket(
         Identifier dimension,
         int entityId,
         UUID entityUuid,
-        @Nullable OutlineStyle style
-) implements CustomPayload {
-    public static final CustomPayload.Id<EntityOutlineUpdateS2CPacket> ID =
-            new CustomPayload.Id<>(ButterflyApi.id("entity_outline_update_v2"));
-    public static final PacketCodec<RegistryByteBuf, EntityOutlineUpdateS2CPacket> CODEC =
-            PacketCodec.ofStatic((buffer, packet) -> packet.write(buffer), EntityOutlineUpdateS2CPacket::new);
+        @Nullable EntityOutline outline
+) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<EntityOutlineUpdateS2CPacket> ID =
+            new CustomPacketPayload.Type<>(ButterflyApi.id("entity_outline_update_v3"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, EntityOutlineUpdateS2CPacket> CODEC =
+            StreamCodec.of((buffer, packet) -> packet.write(buffer), EntityOutlineUpdateS2CPacket::new);
 
     public EntityOutlineUpdateS2CPacket {
         Objects.requireNonNull(dimension, "dimension");
         Objects.requireNonNull(entityUuid, "entityUuid");
     }
 
-    private EntityOutlineUpdateS2CPacket(PacketByteBuf buffer) {
+    private EntityOutlineUpdateS2CPacket(FriendlyByteBuf buffer) {
         this(
                 buffer.readIdentifier(),
                 buffer.readVarInt(),
-                buffer.readUuid(),
-                OutlinePacketCodecs.readStyle(buffer)
+                buffer.readUUID(),
+                OutlinePacketCodecs.readEntityOutline(buffer)
         );
     }
 
-    public void write(PacketByteBuf buffer) {
+    public void write(FriendlyByteBuf buffer) {
         buffer.writeIdentifier(dimension);
         buffer.writeVarInt(entityId);
-        buffer.writeUuid(entityUuid);
-        OutlinePacketCodecs.writeStyle(buffer, style);
+        buffer.writeUUID(entityUuid);
+        OutlinePacketCodecs.writeEntityOutline(buffer, outline);
     }
 
     @Override
-    public CustomPayload.Id<EntityOutlineUpdateS2CPacket> getId() {
+    public CustomPacketPayload.Type<EntityOutlineUpdateS2CPacket> type() {
         return ID;
     }
 }

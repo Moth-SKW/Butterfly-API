@@ -1,10 +1,11 @@
 package moth.butterflyapi.client.text.internal;
 
+//? if >=1.21.11 {
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import moth.butterflyapi.text.TextRenderBounds;
 import moth.butterflyapi.text.TextRenderOffset;
 import moth.butterflyapi.text.TextTransform;
 import moth.butterflyapi.text.TextTransformScope;
-import net.minecraft.client.render.VertexConsumer;
 import org.joml.Matrix4fc;
 import org.joml.Vector3f;
 
@@ -42,7 +43,7 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer vertex(float x, float y, float z) {
+    public VertexConsumer addVertex(float x, float y, float z) {
         flushPendingIncompleteVertex();
         float[] transformed = transform(x, y);
         pendingVertex = new CapturedVertex(transformed[0], transformed[1], z);
@@ -50,7 +51,7 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer vertex(Matrix4fc matrix, float x, float y, float z) {
+    public VertexConsumer addVertex(Matrix4fc matrix, float x, float y, float z) {
         flushPendingIncompleteVertex();
         Vector3f position = matrix.transformPosition(x, y, z, new Vector3f());
         TextRenderBounds pivotBounds = transform.scope() == TextTransformScope.CLUSTER ? clusterBounds : glyphBounds;
@@ -61,17 +62,17 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer color(int red, int green, int blue, int alpha) {
+    public VertexConsumer setColor(int red, int green, int blue, int alpha) {
         return this;
     }
 
     @Override
-    public VertexConsumer color(int argb) {
+    public VertexConsumer setColor(int argb) {
         return this;
     }
 
     @Override
-    public VertexConsumer texture(float u, float v) {
+    public VertexConsumer setUv(float u, float v) {
         if (pendingVertex != null) {
             pendingVertex.u = u;
             pendingVertex.v = v;
@@ -81,7 +82,7 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer overlay(int u, int v) {
+    public VertexConsumer setUv1(int u, int v) {
         if (pendingVertex != null) {
             pendingVertex.overlayU = u;
             pendingVertex.overlayV = v;
@@ -91,7 +92,7 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer light(int u, int v) {
+    public VertexConsumer setUv2(int u, int v) {
         if (pendingVertex != null) {
             pendingVertex.lightU = u;
             pendingVertex.lightV = v;
@@ -101,8 +102,21 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
         return this;
     }
 
+//? if >=26.3 {
+/*
     @Override
-    public VertexConsumer normal(float x, float y, float z) {
+    public VertexConsumer setUv3(float u, float v) {
+        if (pendingVertex != null) {
+            pendingVertex.uv3U = u;
+            pendingVertex.uv3V = v;
+            pendingVertex.hasUv3 = true;
+        }
+        return this;
+    }
+*///?}
+
+    @Override
+    public VertexConsumer setNormal(float x, float y, float z) {
         if (pendingVertex != null) {
             pendingVertex.normalX = x;
             pendingVertex.normalY = y;
@@ -113,9 +127,9 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
     }
 
     @Override
-    public VertexConsumer lineWidth(float width) {
+    public VertexConsumer setLineWidth(float width) {
         flushPendingIncompleteVertex();
-        delegate.lineWidth(width);
+        delegate.setLineWidth(width);
         return this;
     }
 
@@ -176,19 +190,25 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
     }
 
     private void write(CapturedVertex vertex) {
-        delegate.vertex(vertex.x, vertex.y, vertex.z);
-        delegate.color(color);
+        delegate.addVertex(vertex.x, vertex.y, vertex.z);
+        delegate.setColor(color);
         if (vertex.hasTexture) {
-            delegate.texture(vertex.u, vertex.v);
+            delegate.setUv(vertex.u, vertex.v);
         }
         if (vertex.hasOverlay) {
-            delegate.overlay(vertex.overlayU, vertex.overlayV);
+            delegate.setUv1(vertex.overlayU, vertex.overlayV);
         }
         if (vertex.hasLight) {
-            delegate.light(vertex.lightU, vertex.lightV);
+            delegate.setUv2(vertex.lightU, vertex.lightV);
         }
+//? if >=26.3 {
+/*
+        if (vertex.hasUv3) {
+            delegate.setUv3(vertex.uv3U, vertex.uv3V);
+        }
+*///?}
         if (vertex.hasNormal) {
-            delegate.normal(vertex.normalX, vertex.normalY, vertex.normalZ);
+            delegate.setNormal(vertex.normalX, vertex.normalY, vertex.normalZ);
         }
     }
 
@@ -202,12 +222,21 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
         private int overlayV;
         private int lightU;
         private int lightV;
+//? if >=26.3 {
+/*
+        private float uv3U;
+        private float uv3V;
+*///?}
         private float normalX;
         private float normalY;
         private float normalZ;
         private boolean hasTexture;
         private boolean hasOverlay;
         private boolean hasLight;
+//? if >=26.3 {
+/*
+        private boolean hasUv3;
+*///?}
         private boolean hasNormal;
 
         private CapturedVertex(float x, float y, float z) {
@@ -217,3 +246,4 @@ public final class ColorOverrideVertexConsumer implements VertexConsumer {
         }
     }
 }
+//?}

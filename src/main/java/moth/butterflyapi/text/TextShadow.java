@@ -15,6 +15,9 @@ public record TextShadow(
 
     public TextShadow {
         opacity = TextRenderStyle.clamp01(opacity);
+        if (!Float.isFinite(offsetX) || !Float.isFinite(offsetY)) {
+            throw new IllegalArgumentException("Shadow offsets must be finite");
+        }
         transform = transform == null ? TextTransform.NONE : transform;
     }
 

@@ -2,12 +2,12 @@ package moth.butterflyapi.outline.internal.network;
 
 import moth.butterflyapi.ButterflyApi;
 import moth.butterflyapi.outline.OutlineStyle;
-import net.minecraft.network.PacketByteBuf;
-import net.minecraft.network.RegistryByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.packet.CustomPayload;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -16,18 +16,18 @@ public record BlockEntityOutlineUpdateS2CPacket(
         Identifier dimension,
         BlockPos pos,
         @Nullable OutlineStyle style
-) implements CustomPayload {
-    public static final CustomPayload.Id<BlockEntityOutlineUpdateS2CPacket> ID =
-            new CustomPayload.Id<>(ButterflyApi.id("block_entity_outline_update_v2"));
-    public static final PacketCodec<RegistryByteBuf, BlockEntityOutlineUpdateS2CPacket> CODEC =
-            PacketCodec.ofStatic((buffer, packet) -> packet.write(buffer), BlockEntityOutlineUpdateS2CPacket::new);
+) implements CustomPacketPayload {
+    public static final CustomPacketPayload.Type<BlockEntityOutlineUpdateS2CPacket> ID =
+            new CustomPacketPayload.Type<>(ButterflyApi.id("block_entity_outline_update_v2"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, BlockEntityOutlineUpdateS2CPacket> CODEC =
+            StreamCodec.of((buffer, packet) -> packet.write(buffer), BlockEntityOutlineUpdateS2CPacket::new);
 
     public BlockEntityOutlineUpdateS2CPacket {
         Objects.requireNonNull(dimension, "dimension");
-        pos = Objects.requireNonNull(pos, "pos").toImmutable();
+        pos = Objects.requireNonNull(pos, "pos").immutable();
     }
 
-    private BlockEntityOutlineUpdateS2CPacket(PacketByteBuf buffer) {
+    private BlockEntityOutlineUpdateS2CPacket(FriendlyByteBuf buffer) {
         this(
                 buffer.readIdentifier(),
                 buffer.readBlockPos(),
@@ -35,14 +35,14 @@ public record BlockEntityOutlineUpdateS2CPacket(
         );
     }
 
-    public void write(PacketByteBuf buffer) {
+    public void write(FriendlyByteBuf buffer) {
         buffer.writeIdentifier(dimension);
         buffer.writeBlockPos(pos);
         OutlinePacketCodecs.writeStyle(buffer, style);
     }
 
     @Override
-    public CustomPayload.Id<BlockEntityOutlineUpdateS2CPacket> getId() {
+    public CustomPacketPayload.Type<BlockEntityOutlineUpdateS2CPacket> type() {
         return ID;
     }
 }

@@ -2,13 +2,12 @@ package moth.butterflyapi.itemgroup;
 
 import moth.butterflyapi.mod.ModContext;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.text.Text;
-
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ItemLike;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Objects;
@@ -22,8 +21,8 @@ public final class Tabs {
         this.context = Objects.requireNonNull(context, "context");
     }
 
-    public RegistryKey<ItemGroup> key(String path) {
-        return RegistryKey.of(RegistryKeys.ITEM_GROUP, context.id(path));
+    public ResourceKey<CreativeModeTab> key(String path) {
+        return ResourceKey.create(Registries.CREATIVE_MODE_TAB, context.id(path));
     }
 
     public String translationKey(String path) {
@@ -34,11 +33,11 @@ public final class Tabs {
         return new TabBuilder(context, path);
     }
 
-    public ItemGroup create(String path, ItemConvertible icon, ItemConvertible... entries) {
+    public CreativeModeTab create(String path, ItemLike icon, ItemLike... entries) {
         return create(path, icon, translationKey(path), entries);
     }
 
-    public ItemGroup create(String path, ItemConvertible icon, String translationKey, ItemConvertible... entries) {
+    public CreativeModeTab create(String path, ItemLike icon, String translationKey, ItemLike... entries) {
         Objects.requireNonNull(icon, "icon");
         Objects.requireNonNull(translationKey, "translationKey");
         return builder(path)
@@ -48,7 +47,7 @@ public final class Tabs {
                 .build();
     }
 
-    public ItemGroup create(String path, Supplier<ItemStack> icon, Text displayName, Consumer<ItemGroup.Entries> entries) {
+    public CreativeModeTab create(String path, Supplier<ItemStack> icon, Component displayName, Consumer<CreativeModeTab.Output> entries) {
         Objects.requireNonNull(icon, "icon");
         Objects.requireNonNull(displayName, "displayName");
         Objects.requireNonNull(entries, "entries");
@@ -59,19 +58,19 @@ public final class Tabs {
                 .build();
     }
 
-    public void addTo(RegistryKey<ItemGroup> group, ItemConvertible... entries) {
+    public void addTo(ResourceKey<CreativeModeTab> group, ItemLike... entries) {
         addTo(group, Arrays.asList(entries));
     }
 
-    public void addTo(RegistryKey<ItemGroup> group, Collection<? extends ItemConvertible> entries) {
+    public void addTo(ResourceKey<CreativeModeTab> group, Collection<? extends ItemLike> entries) {
         Objects.requireNonNull(group, "group");
         Objects.requireNonNull(entries, "entries");
         ItemGroupEvents.modifyEntriesEvent(group).register(itemGroupEntries -> addAll(itemGroupEntries, entries));
     }
 
-    private static void addAll(ItemGroup.Entries itemGroupEntries, Collection<? extends ItemConvertible> entries) {
-        for (ItemConvertible entry : entries) {
-            itemGroupEntries.add(Objects.requireNonNull(entry, "entry"));
+    private static void addAll(CreativeModeTab.Output itemGroupEntries, Collection<? extends ItemLike> entries) {
+        for (ItemLike entry : entries) {
+            itemGroupEntries.accept(Objects.requireNonNull(entry, "entry"));
         }
     }
 }

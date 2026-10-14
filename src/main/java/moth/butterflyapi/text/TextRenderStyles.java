@@ -1,7 +1,7 @@
 package moth.butterflyapi.text;
 
 import moth.butterflyapi.text.internal.TextStyleEffects;
-import net.minecraft.text.Style;
+import net.minecraft.network.chat.Style;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;

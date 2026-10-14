@@ -1,17 +1,16 @@
 package moth.butterflyapi.client.text;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
-import net.minecraft.text.Text;
-
+import com.mojang.blaze3d.platform.InputConstants;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 
-public record TooltipExpandKey(Text name, BooleanSupplier pressed) {
-    public static final TooltipExpandKey SHIFT = dualKey("Shift", InputUtil.GLFW_KEY_LEFT_SHIFT, InputUtil.GLFW_KEY_RIGHT_SHIFT);
-    public static final TooltipExpandKey CONTROL = dualKey("Ctrl", InputUtil.GLFW_KEY_LEFT_CONTROL, InputUtil.GLFW_KEY_RIGHT_CONTROL);
-    public static final TooltipExpandKey ALT = dualKey("Alt", InputUtil.GLFW_KEY_LEFT_ALT, InputUtil.GLFW_KEY_RIGHT_ALT);
+public record TooltipExpandKey(Component name, BooleanSupplier pressed) {
+    public static final TooltipExpandKey SHIFT = dualKey("Shift", InputConstants.KEY_LSHIFT, InputConstants.KEY_RSHIFT);
+    public static final TooltipExpandKey CONTROL = dualKey("Ctrl", InputConstants.KEY_LCONTROL, InputConstants.KEY_RCONTROL);
+    public static final TooltipExpandKey ALT = dualKey("Alt", InputConstants.KEY_LALT, InputConstants.KEY_RALT);
 
     public TooltipExpandKey {
         Objects.requireNonNull(name, "name");
@@ -23,31 +22,61 @@ public record TooltipExpandKey(Text name, BooleanSupplier pressed) {
     }
 
     public static TooltipExpandKey key(String name, int keyCode) {
-        return key(Text.literal(Objects.requireNonNull(name, "name")), keyCode);
+        return key(Component.literal(Objects.requireNonNull(name, "name")), keyCode);
     }
 
-    public static TooltipExpandKey key(Text name, int keyCode) {
+    public static TooltipExpandKey key(Component name, int keyCode) {
         return new TooltipExpandKey(name, () -> {
-            MinecraftClient client = MinecraftClient.getInstance();
-            return client != null && InputUtil.isKeyPressed(client.getWindow(), keyCode);
+            Minecraft client = Minecraft.getInstance();
+            return client != null && InputConstants.isKeyDown(
+//? if >=26.3 {
+/*
+                    keyCode
+*///?} else if <1.21.11 {
+/*
+                    client.getWindow().getWindow(), keyCode
+*///?} else {
+                    client.getWindow(), keyCode
+//?}
+            );
         });
     }
 
-    public static TooltipExpandKey keyBinding(KeyBinding keyBinding) {
+    public static TooltipExpandKey keyBinding(KeyMapping keyBinding) {
         Objects.requireNonNull(keyBinding, "keyBinding");
-        return new TooltipExpandKey(keyBinding.getBoundKeyLocalizedText(), keyBinding::isPressed);
+        return new TooltipExpandKey(keyBinding.getTranslatedKeyMessage(), keyBinding::isDown);
     }
 
-    public static TooltipExpandKey custom(Text name, BooleanSupplier pressed) {
+    public static TooltipExpandKey custom(Component name, BooleanSupplier pressed) {
         return new TooltipExpandKey(name, pressed);
     }
 
     private static TooltipExpandKey dualKey(String name, int leftKey, int rightKey) {
-        return new TooltipExpandKey(Text.literal(name), () -> {
-            MinecraftClient client = MinecraftClient.getInstance();
+        return new TooltipExpandKey(Component.literal(name), () -> {
+            Minecraft client = Minecraft.getInstance();
             return client != null
-                    && (InputUtil.isKeyPressed(client.getWindow(), leftKey)
-                    || InputUtil.isKeyPressed(client.getWindow(), rightKey));
+                    && (InputConstants.isKeyDown(
+//? if >=26.3 {
+/*
+                    leftKey
+*///?} else if <1.21.11 {
+/*
+                    client.getWindow().getWindow(), leftKey
+*///?} else {
+                    client.getWindow(), leftKey
+//?}
+            )
+                    || InputConstants.isKeyDown(
+//? if >=26.3 {
+/*
+                    rightKey
+*///?} else if <1.21.11 {
+/*
+                    client.getWindow().getWindow(), rightKey
+*///?} else {
+                    client.getWindow(), rightKey
+//?}
+            ));
         });
     }
 }

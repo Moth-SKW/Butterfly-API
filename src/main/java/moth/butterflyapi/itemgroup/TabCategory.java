@@ -1,20 +1,20 @@
 package moth.butterflyapi.itemgroup;
 
-import net.minecraft.item.ItemConvertible;
-import net.minecraft.item.ItemGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.CreativeModeTab;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ItemLike;
 
 public final class TabCategory {
     private final String id;
-    private final Text text;
+    private final Component text;
     private final TabSurface background;
     @Nullable
     private final Integer borderColor;
@@ -32,7 +32,7 @@ public final class TabCategory {
         this.operations = List.copyOf(builder.operations);
     }
 
-    static Builder builder(String id, Text text) {
+    static Builder builder(String id, Component text) {
         return new Builder(id, text);
     }
 
@@ -40,7 +40,7 @@ public final class TabCategory {
         return id;
     }
 
-    public Text text() {
+    public Component label() {
         return text;
     }
 
@@ -73,7 +73,7 @@ public final class TabCategory {
 
     public static final class Builder {
         private final String id;
-        private final Text text;
+        private final Component text;
         private final List<TabEntryOperation> operations = new ArrayList<>();
         private TabSurface background = TabSurface.color("#404040");
         @Nullable
@@ -81,7 +81,7 @@ public final class TabCategory {
         private int textColor = HexColor.parse("#FFFFFF");
         private TextAlignment textAlignment = TextAlignment.CENTER;
 
-        private Builder(String id, Text text) {
+        private Builder(String id, Component text) {
             this.id = requireId(id);
             this.text = Objects.requireNonNull(text, "text");
         }
@@ -128,7 +128,7 @@ public final class TabCategory {
             return textAlignment(TextAlignment.RIGHT);
         }
 
-        public Builder entries(Consumer<ItemGroup.Entries> entries) {
+        public Builder entries(Consumer<CreativeModeTab.Output> entries) {
             operations.add(new TabEntriesOperation(
                     Objects.requireNonNull(entries, "entries"),
                     false
@@ -136,7 +136,7 @@ public final class TabCategory {
             return this;
         }
 
-        public Builder searchOnlyEntries(Consumer<ItemGroup.Entries> entries) {
+        public Builder searchOnlyEntries(Consumer<CreativeModeTab.Output> entries) {
             operations.add(new TabEntriesOperation(
                     Objects.requireNonNull(entries, "entries"),
                     true
@@ -144,7 +144,7 @@ public final class TabCategory {
             return this;
         }
 
-        public Builder add(ItemConvertible... entries) {
+        public Builder add(ItemLike... entries) {
             Objects.requireNonNull(entries, "entries");
             return entries(groupEntries -> addItems(groupEntries, entries));
         }
@@ -154,7 +154,7 @@ public final class TabCategory {
             return entries(groupEntries -> addStacks(groupEntries, stacks));
         }
 
-        public Builder entry(ItemConvertible entry, Consumer<TabEntryStyle.Builder> appearance) {
+        public Builder entry(ItemLike entry, Consumer<TabEntryStyle.Builder> appearance) {
             Objects.requireNonNull(entry, "entry");
             return styledEntry(new ItemStack(entry), false, appearance);
         }
@@ -163,7 +163,7 @@ public final class TabCategory {
             return styledEntry(Objects.requireNonNull(stack, "stack"), false, appearance);
         }
 
-        public Builder searchOnly(ItemConvertible... entries) {
+        public Builder searchOnly(ItemLike... entries) {
             Objects.requireNonNull(entries, "entries");
             return searchOnlyEntries(groupEntries -> addItems(groupEntries, entries));
         }
@@ -174,7 +174,7 @@ public final class TabCategory {
         }
 
         public Builder searchOnlyEntry(
-                ItemConvertible entry,
+                ItemLike entry,
                 Consumer<TabEntryStyle.Builder> appearance
         ) {
             Objects.requireNonNull(entry, "entry");
@@ -206,7 +206,7 @@ public final class TabCategory {
             ItemStack capturedStack = Objects.requireNonNull(stack, "stack").copy();
             TabEntryStyle style = TabEntryStyle.configure(appearance);
             operations.add(new TabEntriesOperation(
-                    entries -> entries.add(capturedStack.copy()),
+                    entries -> entries.accept(capturedStack.copy()),
                     searchOnly,
                     style.slotBackground()
             ));
@@ -217,15 +217,15 @@ public final class TabCategory {
             return new TabCategory(this);
         }
 
-        private static void addItems(ItemGroup.Entries target, ItemConvertible[] entries) {
-            for (ItemConvertible entry : entries) {
-                target.add(Objects.requireNonNull(entry, "entry"));
+        private static void addItems(CreativeModeTab.Output target, ItemLike[] entries) {
+            for (ItemLike entry : entries) {
+                target.accept(Objects.requireNonNull(entry, "entry"));
             }
         }
 
-        private static void addStacks(ItemGroup.Entries target, ItemStack[] stacks) {
+        private static void addStacks(CreativeModeTab.Output target, ItemStack[] stacks) {
             for (ItemStack stack : stacks) {
-                target.add(Objects.requireNonNull(stack, "stack"));
+                target.accept(Objects.requireNonNull(stack, "stack"));
             }
         }
 

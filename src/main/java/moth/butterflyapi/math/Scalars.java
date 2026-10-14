@@ -1,6 +1,6 @@
 package moth.butterflyapi.math;
 
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.Mth;
 
 public final class Scalars {
     public static final double EPSILON = 1.0E-7D;
@@ -9,23 +9,23 @@ public final class Scalars {
     }
 
     public static double clamp01(double value) {
-        return MathHelper.clamp(value, 0.0D, 1.0D);
+        return Mth.clamp(value, 0.0D, 1.0D);
     }
 
     public static float clamp01(float value) {
-        return MathHelper.clamp(value, 0.0F, 1.0F);
+        return Mth.clamp(value, 0.0F, 1.0F);
     }
 
     public static double clamp(double value, double min, double max) {
-        return MathHelper.clamp(value, min, max);
+        return Mth.clamp(value, min, max);
     }
 
     public static float clamp(float value, float min, float max) {
-        return MathHelper.clamp(value, min, max);
+        return Mth.clamp(value, min, max);
     }
 
     public static int clamp(int value, int min, int max) {
-        return MathHelper.clamp(value, min, max);
+        return Mth.clamp(value, min, max);
     }
 
     public static double square(double value) {
@@ -45,11 +45,11 @@ public final class Scalars {
     }
 
     public static double lerp(double delta, double start, double end) {
-        return MathHelper.lerp(delta, start, end);
+        return Mth.lerp(delta, start, end);
     }
 
     public static float lerp(float delta, float start, float end) {
-        return MathHelper.lerp(delta, start, end);
+        return Mth.lerp(delta, start, end);
     }
 
     public static double inverseLerp(double value, double start, double end) {
